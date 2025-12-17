@@ -1,50 +1,153 @@
 @model List<NutriMatch.Models.RestaurantMeal>
 
-@if (Model.Count == 0)
-{
-    <div class="no-items-message">
-        <i class="fas fa-filter fa-2x mb-3"></i>
-        <h5>No items match your filters</h5>
-        <p>Try adjusting your macro filters to see more menu items</p>
+<div class="modal-header">
+    <h5 class="modal-title" id="modalRestaurantName">@ViewBag.RestaurantName</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body">
+    <div id="filterInfo" class="filter-info" style="display: none;">
+        <small><i class="fas fa-info-circle me-1"></i>Showing items matching your macro filters</small>
     </div>
-}
-else
-{
-    @foreach (var meal in Model)
-    {
-        <div class="col-md-5">
-            <div class="menu-item">
-                <div class="menu-item-header" onclick="toggleItemDetails(this)">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1 fs-6">@meal.ItemName</h6>
-                        </div>
-                        <div class="text-end">
-                            <small class="text-muted">
-                                <i class="fas fa-chevron-down chevron-icon"></i>
-                            </small>
-                        </div>
-                    </div>
+    <div id="menuItems">
+        <div class="col-12">
+            <div class="row mb-3">
+                <div class="position-relative">
+                    <input type="text" id="menuSearchInput" class="form-control" placeholder="Search menu items..."
+                        autocomplete="off">
+                    <i class="fas fa-search position-absolute"
+                        style="right: 20px; top: 50%; transform: translateY(-50%); color: #6c757d;"></i>
                 </div>
-                <div class="collapse menu-item-details">
-                    <p class="mb-2 small">@meal.ItemDescription</p>
-                    <div class="macros">
-                        <span class="macro-badge calories">
-                            <i class="fas fa-fire me-1"></i>@meal.Calories cal
-                        </span>
-                        <span class="macro-badge protein">
-                            <i class="fas fa-drumstick-bite me-1"></i>@meal.Protein g protein
-                        </span>
-                        <span class="macro-badge carbs">
-                            <i class="fas fa-bread-slice me-1"></i>@meal.Carbs g carbs
-                        </span>
-                        <span class="macro-badge fats">
-                            <i class="fas fa-tint me-1 "></i>@meal.Fat g fats
-                        </span>
+                <small class="text-muted" id="searchResultCount"></small>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-12">
+                <div id="menuItemsContainer" class="row g-3">
+                    @if (Model.Count == 0)
+                    {
+                        <div class="col-12">
+                            <div class="no-items-message">
+                                <i class="fas fa-filter fa-2x mb-3"></i>
+                                <h5>No items match your filters</h5>
+                                <p>Try adjusting your macro filters to see more menu items</p>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var meal in Model)
+                        {
+                            <div class="col-md-6 menu-item-wrapper" data-meal-name="@meal.ItemName.ToLower()"
+                                data-meal-description="@meal.ItemDescription?.ToLower()">
+                                <div class="menu-item">
+                                    <div class="menu-item-header" onclick="toggleItemDetails(this)">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1 fs-6">@meal.ItemName</h6>
+                                            </div>
+                                            <div class="text-end">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-chevron-down chevron-icon"></i>
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="collapse menu-item-details">
+                                        <p class="mb-2 small">@meal.ItemDescription</p>
+                                        <div class="macros">
+                                            <span class="macro-badge calories">
+                                                <i class="fas fa-fire me-1"></i>@meal.Calories cal
+                                            </span>
+                                            <span class="macro-badge protein">
+                                                <i class="fas fa-drumstick-bite me-1"></i>@meal.Protein g protein
+                                            </span>
+                                            <span class="macro-badge carbs">
+                                                <i class="fas fa-bread-slice me-1"></i>@meal.Carbs g carbs
+                                            </span>
+                                            <span class="macro-badge fats">
+                                                <i class="fas fa-tint me-1"></i>@meal.Fat g fats
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+
+                <div id="noSearchResults" class="row" style="display: none;">
+                    <div class="col-12">
+                        <div class="no-items-message">
+                            <i class="fas fa-search fa-2x mb-3"></i>
+                            <h5>No items found</h5>
+                            <p>No menu items match your search</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    }
 
-}
+
+
+
+
+        <script>
+            filterInfo = document.getElementById("filterInfo");
+            if (!areFiltersDefault()) {
+                filterInfo.style.display = "block";
+            } else {
+                filterInfo.style.display = "none";
+            }
+
+            (function () {
+                const searchInput = document.getElementById('menuSearchInput');
+                const itemsContainer = document.getElementById('menuItemsContainer');
+                const noResultsMessage = document.getElementById('noSearchResults');
+                const resultCount = document.getElementById('searchResultCount');
+
+                if (!searchInput) return;
+
+                function performSearch() {
+                    const searchTerm = searchInput.value.toLowerCase().trim();
+                    const menuItems = itemsContainer.querySelectorAll('.menu-item-wrapper');
+                    let visibleCount = 0;
+
+                    menuItems.forEach(item => {
+                        const mealName = item.dataset.mealName || '';
+                        const mealDescription = item.dataset.mealDescription || '';
+
+                        const matches = mealName.includes(searchTerm) || mealDescription.includes(searchTerm);
+
+                        if (matches) {
+                            item.style.display = '';
+                            visibleCount++;
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+
+                    if (searchTerm) {
+                        resultCount.textContent = `Showing ${visibleCount} of ${menuItems.length} items`;
+                    } else {
+                        resultCount.textContent = '';
+                    }
+
+                    if (visibleCount === 0 && searchTerm) {
+                        itemsContainer.style.display = 'none';
+                        noResultsMessage.style.display = 'block';
+                    } else {
+                        itemsContainer.style.display = 'flex';
+                        noResultsMessage.style.display = 'none';
+                    }
+                }
+
+                let searchTimeout;
+                searchInput.addEventListener('input', function () {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(performSearch, 200);
+                });
+
+                searchInput.focus();
+            })();
+        </script>

@@ -29,6 +29,7 @@
             text-align: center;
             cursor: pointer;
             height: 100%;
+            position: relative;
 
         }
         
@@ -65,13 +66,6 @@
             
         }
 
-        #menuItems{
-            display: flex;
-            flex-wrap: wrap;
-            
-            justify-content: space-around;
-            
-        }
         
         .menu-item:hover {
             border-color: var(--nutri-green);
@@ -227,3 +221,201 @@
         #restaurantsGrid {
             justify-content: center;
         }
+
+        .tag-selection {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .tag-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tag-item:hover {
+            background: #e9ecef;
+        }
+
+        .tag-item input[type="checkbox"] {
+            display: none;
+        }
+
+        .tag-item label {
+            cursor: pointer;
+            margin: 0;
+            width: 100%;
+            font-weight: 500;
+        }
+
+        .tag-item input[type="checkbox"]:checked + label {
+            color: #31cf6b;
+        }
+
+        .tag-item input[type="checkbox"]:checked ~ label::before {
+            content: '✓ ';
+            margin-right: 4px;
+        }
+
+        .follow-btn {
+            margin-top: 10px;
+            width: 100%;
+            transition: all 0.3s;
+        }
+
+        .follow-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .notification-bell {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: white;
+            color: var(--nutri-green);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notification-bell:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .notification-bell.active {
+            background: var(--nutri-green);
+            color: white;
+        }
+
+        .notification-bell i {
+            transition: all 0.3s ease;
+        }
+
+        @keyframes bellRing {
+            0%, 100% { transform: rotate(0deg); }
+            10%, 30%, 50%, 70%, 90% { transform: rotate(-10deg); }
+            20%, 40%, 60%, 80% { transform: rotate(10deg); }
+        }
+
+        .notification-bell.just-activated {
+            animation: bellRing 0.5s ease-in-out;
+        }
+        
+
+        .tag-selection {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .tag-item-wrapper {
+            display: flex;
+            flex-direction: column;
+            background: #f8f9fa;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            align-self: start;
+        }
+
+        .tag-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .tag-item:hover {
+            background: #e9ecef;
+        }
+
+        .tag-item input[type="checkbox"] {
+            display: none;
+        }
+
+        .tag-item label {
+            cursor: pointer;
+            margin: 0;
+            font-weight: 500;
+            flex-grow: 1;
+        }
+
+        .tag-item input[type="checkbox"]:checked + label {
+            color: #31cf6b;
+        }
+
+        .tag-item input[type="checkbox"]:checked ~ label::before {
+            content: '✓ ';
+            margin-right: 4px;
+        }
+
+        .expand-icon {
+            font-size: 0.8rem;
+            color: #6c757d;
+            transition: transform 0.3s ease;
+            margin-left: 8px;
+        }
+
+        .tag-item.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+
+        .tag-threshold {
+            max-height: 0;
+            overflow: hidden;
+            padding: 0 12px;
+            transition: all 0.3s ease;
+            background: white;
+            border-top: 1px solid transparent;
+        }
+
+        .tag-threshold.show {
+            max-height: 100px;
+            padding: 12px;
+            border-top-color: #e9ecef;
+        }
+
+        .tag-threshold label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .tag-threshold input[type="number"] {
+            width: 100%;
+        }
+
+        .modal-dialog.modal-lg {
+            max-width: 700px;
+        }
+
+        .tag-item-wrapper:has(#tag-balanced) .tag-item {
+            cursor: default;
+        }
+
+        .tag-item-wrapper:has(#tag-balanced) .expand-icon {
+            display: none;
+        }
+
+        .ct-main {
+            margin-top: 40px;
+        }
+    

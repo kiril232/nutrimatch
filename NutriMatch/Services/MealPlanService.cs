@@ -43,6 +43,9 @@ namespace NutriMatch.Services
 
                 foreach (var day in days)
                 {
+                    var usedRecipeIds = new HashSet<int>();
+                    var usedRestaurantMealIds = new HashSet<int>();
+
                     var dailyMacros = new DailyMacros
                     {
                         Calories = request.DailyCalories,
@@ -64,26 +67,32 @@ namespace NutriMatch.Services
 
                         if (isRestaurantMeal)
                         {
-                            var restaurantMeal = await SelectRestaurantMealAsync(mealType, targetMacros);
+                            var restaurantMeal = await SelectRestaurantMealAsync(mealType, targetMacros, usedRestaurantMealIds);
                             if (restaurantMeal != null)
                             {
                                 mealSlot.RestaurantMeal = restaurantMeal;
                                 mealSlot.IsRestaurantMeal = true;
+                                usedRestaurantMealIds.Add(restaurantMeal.Id);
                             }
                             else
                             {
-                                var recipe = await SelectRecipeAsync(mealType, targetMacros);
-                                mealSlot.Recipe = recipe;
-                                mealSlot.IsRestaurantMeal = false;
+                                var recipe = await SelectRecipeAsync(mealType, targetMacros, usedRecipeIds);
+                                if (recipe != null)
+                                {
+                                    mealSlot.Recipe = recipe;
+                                    mealSlot.IsRestaurantMeal = false;
+                                    usedRecipeIds.Add(recipe.Id);
+                                }
                             }
                         }
                         else
                         {
-                            var recipe = await SelectRecipeAsync(mealType, targetMacros);
+                            var recipe = await SelectRecipeAsync(mealType, targetMacros, usedRecipeIds);
                             if (recipe != null)
                             {
                                 mealSlot.Recipe = recipe;
                                 mealSlot.IsRestaurantMeal = false;
+                                usedRecipeIds.Add(recipe.Id);
                             }
                         }
 
@@ -107,7 +116,7 @@ namespace NutriMatch.Services
                             MealType = "snack"
                         };
 
-                        var snackRecipe = await SelectRecipeAsync("snack", snackMacros);
+                        var snackRecipe = await SelectRecipeAsync("snack", snackMacros, usedRecipeIds);
                         if (snackRecipe != null)
                         {
                             snackSlot.Recipe = snackRecipe;
@@ -146,7 +155,6 @@ namespace NutriMatch.Services
                 }
 
                 _context.MealSlots.RemoveRange(mealPlan.MealSlots);
-
                 _context.WeeklyMealPlans.Remove(mealPlan);
 
                 await _context.SaveChangesAsync();
@@ -198,11 +206,16 @@ namespace NutriMatch.Services
             };
         }
 
-        private async Task<Recipe> SelectRecipeAsync(string mealType, DailyMacros targetMacros)
+        private async Task<Recipe> SelectRecipeAsync(string mealType, DailyMacros targetMacros, HashSet<int> excludeRecipeIds = null)
         {
             var query = _context.Recipes
                 .Include(r => r.RecipeIngredients)
                 .Where(r => r.RecipeStatus == "Accepted");
+
+            if (excludeRecipeIds != null && excludeRecipeIds.Any())
+            {
+                query = query.Where(r => !excludeRecipeIds.Contains(r.Id));
+            }
 
             if (!string.IsNullOrEmpty(mealType))
             {
@@ -216,6 +229,11 @@ namespace NutriMatch.Services
                 recipes = await _context.Recipes
                     .Where(r => r.RecipeStatus == "Accepted")
                     .ToListAsync();
+
+                if (excludeRecipeIds != null && excludeRecipeIds.Any())
+                {
+                    recipes = recipes.Where(r => !excludeRecipeIds.Contains(r.Id)).ToList();
+                }
             }
 
             if (!recipes.Any()) return null;
@@ -234,9 +252,14 @@ namespace NutriMatch.Services
             return selectedRecipe;
         }
 
-        private async Task<RestaurantMeal> SelectRestaurantMealAsync(string mealType, DailyMacros targetMacros)
+        private async Task<RestaurantMeal> SelectRestaurantMealAsync(string mealType, DailyMacros targetMacros, HashSet<int> excludeMealIds = null)
         {
             var query = _context.RestaurantMeals.AsQueryable();
+
+            if (excludeMealIds != null && excludeMealIds.Any())
+            {
+                query = query.Where(rm => !excludeMealIds.Contains(rm.Id));
+            }
 
             if (!string.IsNullOrEmpty(mealType))
             {
@@ -310,7 +333,7 @@ namespace NutriMatch.Services
 
         public async Task<WeeklyMealPlan> GetMealPlanByIdAsync(int id, string userId)
         {
-#pragma warning disable CS8603 
+#pragma warning disable CS8603
             return await _context.WeeklyMealPlans
                 .Include(wmp => wmp.MealSlots)
                     .ThenInclude(ms => ms.Recipe)
@@ -328,6 +351,285 @@ namespace NutriMatch.Services
                 .Include(wmp => wmp.MealSlots)
                 .OrderByDescending(wmp => wmp.GeneratedAt)
                 .ToListAsync();
+        }
+
+        public async Task<bool> RegenerateMealSlotAsync(int mealSlotId, string userId)
+        {
+            try
+            {
+                var mealSlot = await _context.MealSlots
+                    .Include(ms => ms.Recipe)
+                    .Include(ms => ms.RestaurantMeal)
+                    .FirstOrDefaultAsync(ms => ms.Id == mealSlotId);
+
+                if (mealSlot == null)
+                    return false;
+
+                var weeklyPlan = await _context.WeeklyMealPlans
+                    .FirstOrDefaultAsync(wmp => wmp.UserId == userId && wmp.MealSlots.Any(ms => ms.Id == mealSlotId));
+
+                if (weeklyPlan == null)
+                    return false;
+
+                var currentRecipeId = mealSlot.Recipe?.Id;
+                var currentRestaurantMealId = mealSlot.RestaurantMeal?.Id;
+
+                var targetMacros = new DailyMacros
+                {
+                    Calories = mealSlot.IsRestaurantMeal ? (mealSlot.RestaurantMeal?.Calories ?? 500) : (mealSlot.Recipe?.Calories ?? 500),
+                    Protein = mealSlot.IsRestaurantMeal ? (mealSlot.RestaurantMeal?.Protein ?? 30) : (mealSlot.Recipe?.Protein ?? 30),
+                    Carbs = mealSlot.IsRestaurantMeal ? (mealSlot.RestaurantMeal?.Carbs ?? 50) : (mealSlot.Recipe?.Carbs ?? 50),
+                    Fat = mealSlot.IsRestaurantMeal ? (mealSlot.RestaurantMeal?.Fat ?? 15) : (mealSlot.Recipe?.Fat ?? 15)
+                };
+
+                if (mealSlot.IsRestaurantMeal)
+                {
+                    var newRestaurantMeal = await SelectBestRestaurantMealAsync(mealSlot.MealType, targetMacros, currentRestaurantMealId);
+                    if (newRestaurantMeal != null)
+                    {
+                        mealSlot.RestaurantMeal = newRestaurantMeal;
+                        mealSlot.Recipe = null;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    var newRecipe = await SelectBestRecipeAsync(mealSlot.MealType, targetMacros, currentRecipeId);
+                    if (newRecipe != null)
+                    {
+                        mealSlot.Recipe = newRecipe;
+                        mealSlot.RestaurantMeal = null;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        private async Task<Recipe> SelectBestRecipeAsync(string mealType, DailyMacros targetMacros, int? excludeRecipeId = null)
+        {
+            var query = _context.Recipes
+                .Include(r => r.RecipeIngredients)
+                .Where(r => r.RecipeStatus == "Accepted");
+
+            if (excludeRecipeId.HasValue)
+            {
+                query = query.Where(r => r.Id != excludeRecipeId.Value);
+            }
+
+            if (!string.IsNullOrEmpty(mealType))
+            {
+                query = query.Where(r => r.Type.Contains(mealType));
+            }
+
+            var recipes = await query.ToListAsync();
+
+            if (!recipes.Any())
+            {
+                recipes = await _context.Recipes
+                    .Where(r => r.RecipeStatus == "Accepted" && r.Id != excludeRecipeId)
+                    .ToListAsync();
+            }
+
+            if (!recipes.Any()) return null;
+
+            var closestRecipe = recipes
+                .Select(recipe => new
+                {
+                    Recipe = recipe,
+                    Score = CalculateMacroMatchScore(recipe, targetMacros)
+                })
+                .OrderByDescending(x => x.Score)
+                .First()
+                .Recipe;
+
+            return closestRecipe;
+        }
+
+        private async Task<RestaurantMeal> SelectBestRestaurantMealAsync(string mealType, DailyMacros targetMacros, int? excludeMealId = null)
+        {
+            var query = _context.RestaurantMeals.AsQueryable();
+
+            if (excludeMealId.HasValue)
+            {
+                query = query.Where(rm => rm.Id != excludeMealId.Value);
+            }
+
+            if (!string.IsNullOrEmpty(mealType))
+            {
+                query = query.Where(rm => rm.Type.Contains(mealType));
+            }
+
+            var restaurantMeals = await query.ToListAsync();
+
+            if (!restaurantMeals.Any())
+            {
+                restaurantMeals = await _context.RestaurantMeals
+                    .Where(rm => rm.Id != excludeMealId)
+                    .ToListAsync();
+            }
+
+            if (!restaurantMeals.Any()) return null;
+
+            var closestMeal = restaurantMeals
+                .Select(meal => new
+                {
+                    Meal = meal,
+                    Score = CalculateMacroMatchScore(meal, targetMacros)
+                })
+                .OrderByDescending(x => x.Score)
+                .First()
+                .Meal;
+
+            return closestMeal;
+        }
+
+        public async Task HandleDeletedRecipeAsync(int recipeId)
+        {
+            try
+            {
+                var affectedMealSlots = await _context.MealSlots
+                    .Include(ms => ms.Recipe)
+                    .Where(ms => ms.Recipe != null && ms.Recipe.Id == recipeId && !ms.IsRestaurantMeal)
+                    .ToListAsync();
+
+                if (!affectedMealSlots.Any())
+                    return;
+
+                var affectedUserIds = await _context.WeeklyMealPlans
+                    .Where(wmp => wmp.MealSlots.Any(ms => affectedMealSlots.Select(ams => ams.Id).Contains(ms.Id)))
+                    .Select(wmp => wmp.UserId)
+                    .Distinct()
+                    .ToListAsync();
+
+                foreach (var mealSlot in affectedMealSlots)
+                {
+                    var targetMacros = new DailyMacros
+                    {
+                        Calories = mealSlot.Recipe?.Calories ?? 500,
+                        Protein = mealSlot.Recipe?.Protein ?? 30,
+                        Carbs = mealSlot.Recipe?.Carbs ?? 50,
+                        Fat = mealSlot.Recipe?.Fat ?? 15
+                    };
+
+                    var replacementRecipe = await SelectBestRecipeAsync(mealSlot.MealType, targetMacros, recipeId);
+
+                    if (replacementRecipe != null)
+                    {
+                        mealSlot.Recipe = replacementRecipe;
+                        mealSlot.IsRegenerated = true;
+                        mealSlot.isViewed = false;
+                    }
+                    else
+                    {
+                        mealSlot.Recipe = null;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                foreach (var userId in affectedUserIds)
+                {
+                    var UserNotification = await _context.Users.FindAsync(userId);
+                    if (UserNotification.NotifyMealPlanUpdated)
+                    {
+
+                        var notification = new Notification
+                        {
+                            UserId = userId,
+                            Type = "MealPlanUpdated",
+                            Message = $"A recipe in your meal plan was removed and has been automatically replaced with a similar recipe.",
+                            CreatedAt = DateTime.Now.ToUniversalTime(),
+
+                            IsRead = false
+                        };
+
+                        _context.Notifications.Add(notification);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+
+        public async Task HandleDeletedRestaurantMealAsync(int restaurantMealId)
+        {
+            try
+            {
+                var affectedMealSlots = await _context.MealSlots
+                    .Include(ms => ms.RestaurantMeal)
+                    .Where(ms => ms.RestaurantMeal != null && ms.RestaurantMeal.Id == restaurantMealId && ms.IsRestaurantMeal)
+                    .ToListAsync();
+
+                if (!affectedMealSlots.Any())
+                    return;
+
+                var affectedUserIds = await _context.WeeklyMealPlans
+                    .Where(wmp => wmp.MealSlots.Any(ms => affectedMealSlots.Select(ams => ams.Id).Contains(ms.Id)))
+                    .Select(wmp => wmp.UserId)
+                    .Distinct()
+                    .ToListAsync();
+
+                foreach (var mealSlot in affectedMealSlots)
+                {
+                    var targetMacros = new DailyMacros
+                    {
+                        Calories = mealSlot.RestaurantMeal?.Calories ?? 500,
+                        Protein = mealSlot.RestaurantMeal?.Protein ?? 30,
+                        Carbs = mealSlot.RestaurantMeal?.Carbs ?? 50,
+                        Fat = mealSlot.RestaurantMeal?.Fat ?? 15
+                    };
+
+                    var replacementMeal = await SelectBestRestaurantMealAsync(mealSlot.MealType, targetMacros, restaurantMealId);
+
+                    if (replacementMeal != null)
+                    {
+                        mealSlot.RestaurantMeal = replacementMeal;
+                        mealSlot.IsRegenerated = true;
+                        mealSlot.isViewed = false;
+                    }
+                    else
+                    {
+                        mealSlot.RestaurantMeal = null;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                foreach (var userId in affectedUserIds)
+                {
+                    var notification = new Notification
+                    {
+                        UserId = userId,
+                        Type = "MealPlanUpdated",
+                        Message = $"A restaurant meal in your meal plan was removed and has been automatically replaced with a similar restaurant meal.",
+                        CreatedAt = DateTime.Now.ToUniversalTime(),
+                        IsRead = false
+                    };
+
+                    _context.Notifications.Add(notification);
+                }
+
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+            }
         }
     }
 }

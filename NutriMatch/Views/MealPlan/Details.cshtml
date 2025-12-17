@@ -3,12 +3,114 @@
     ViewBag.Title = "Weekly Meal Plan";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Meal Plan</title>
     <link href="~/css/MealPlanDetails.css" rel="stylesheet">
+    <style>
+        .regenerate-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+            margin-top: 8px;
+            width: fit-content;
+        }
+
+        .regenerate-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(16, 185, 129, 0.35);
+        }
+
+        .regenerate-btn:active {
+            transform: translateY(0);
+        }
+
+        .regenerate-btn i {
+            animation: none;
+        }
+
+        .regenerate-btn.loading i {
+            animation: spin 1s linear infinite;
+        }
+
+        @@keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .regenerated-indicator {
+            position: absolute;
+            top: -0.5rem;
+            right: -0.5rem;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: white;
+            padding: 6px;
+            border-radius: 50%;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            animation: fadeIn 0.5s ease;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            width: 28px;
+            height: 28px;
+        }
+
+        .regenerated-indicator.fade-out {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+
+
+        .notification-icon {
+            font-size: 1.5rem;
+        }
+
+        .notification-icon.success {
+            color: #10b981;
+        }
+
+        .notification-icon.error {
+            color: #ef4444;
+        }
+
+        .meal-card {
+            position: relative;
+        }
+    </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header-section">
@@ -18,6 +120,7 @@
                 Generated on @Model.GeneratedAt.ToString("MMMM dd, yyyy 'at' h:mm tt")
             </div>
         </div>
+
         <div class="navigation-bar">
             <a href="@Url.Action("Index", "MealPlan")" class="nav-btn">
                 <i class="fas fa-arrow-left"></i>
@@ -28,22 +131,25 @@
                 Delete Plan
             </button>
         </div>
+
         <div class="days-container">
             @{
                 var days = new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
                 var dayMeals = Model.MealSlots.GroupBy(ms => ms.Day).ToDictionary(g => g.Key, g => g.ToList());
             }
+
             @foreach (var day in days)
             {
                 var meals = dayMeals.ContainsKey(day) ? dayMeals[day] : new List<NutriMatch.Models.MealSlot>();
                 var dailyCalories = meals.Sum(m => m.IsRestaurantMeal ? (m.RestaurantMeal?.Calories ?? 0) :
-                (m.Recipe?.Calories
-                ?? 0));
+                (m.Recipe?.Calories ?? 0));
+
                 <div class="day-card">
                     <div class="day-header">
                         <div class="day-name">@day</div>
                         <div class="day-calories">@((int)dailyCalories) cal</div>
                     </div>
+
                     @if (meals.Any())
                     {
                         <div class="meals-container">
@@ -51,10 +157,25 @@
                             {
                                 @if (meal.IsRestaurantMeal && meal.RestaurantMeal != null)
                                 {
-                                    <div class="meal-card @meal.MealType">
+                                    <div class="meal-card @meal.MealType" data-meal-id="@meal.Id"
+                                        data-is-regenerated="@(meal.IsRegenerated == true ? "true" : "false")"
+                                        data-is-viewed="@(meal.isViewed == true ? "true" : "false")"
+                                        onclick="SetIsViewed(event, true, @meal.Id)">
+
+                                        @if (meal.IsRegenerated == true && meal.isViewed == false)
+                                        {
+                                            <div class="regenerated-indicator">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </div>
+                                        }
+
                                         <div class="meal-header">
                                             <span class="meal-type @meal.MealType">@meal.MealType</span>
                                             <span class="restaurant-badge">Restaurant</span>
+                                            <button class="regenerate-btn" onclick="regenerateMeal(event, @meal.Id, @Model.Id)">
+                                                <i class="fas fa-sync-alt"></i>
+                                                Regenerate
+                                            </button>
                                         </div>
                                         <div class="meal-name">@meal.RestaurantMeal.ItemName</div>
                                         <div class="meal-restaurant">@meal.RestaurantMeal.RestaurantName</div>
@@ -68,11 +189,25 @@
                                 }
                                 else if (meal.Recipe != null)
                                 {
-                                    <div class="meal-card @meal.MealType clickable"
-                                        onclick="handleMealCardClick(event, @meal.Recipe.Id)">
+                                    <div class="meal-card @meal.MealType clickable" data-meal-id="@meal.Id"
+                                        data-is-regenerated="@(meal.IsRegenerated == true ? "true" : "false")"
+                                        data-is-viewed="@(meal.isViewed == true ? "true" : "false")"
+                                        onclick="handleMealCardClick(event, @meal.Recipe.Id, @meal.Id)">
+
+                                        @if (meal.IsRegenerated == true && meal.isViewed == false)
+                                        {
+                                            <div class="regenerated-indicator">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </div>
+                                        }
+
                                         <div class="meal-header">
                                             <span class="meal-type @meal.MealType">@meal.MealType</span>
                                             <span class="recipe-badge">Recipe</span>
+                                            <button class="regenerate-btn" onclick="regenerateMeal(event, @meal.Id, @Model.Id)">
+                                                <i class="fas fa-sync-alt"></i>
+                                                Regenerate
+                                            </button>
                                         </div>
                                         <div class="meal-name">@meal.Recipe.Title</div>
                                         <div class="meal-macros">
@@ -93,11 +228,13 @@
                 </div>
             }
         </div>
+
         <div class="summary-card">
             <div class="summary-header">
                 <h2>Weekly Overview</h2>
                 <p>Your nutritional breakdown for the entire week</p>
             </div>
+
             @{
                 var totalCalories = Model.MealSlots.Sum(ms => ms.IsRestaurantMeal ? (ms.RestaurantMeal?.Calories ?? 0) :
                 (ms.Recipe?.Calories ?? 0));
@@ -106,10 +243,10 @@
                 var totalCarbs = Model.MealSlots.Sum(ms => ms.IsRestaurantMeal ? (ms.RestaurantMeal?.Carbs ?? 0) :
                 (ms.Recipe?.Carbs ?? 0));
                 var totalFat = Model.MealSlots.Sum(ms => ms.IsRestaurantMeal ? (ms.RestaurantMeal?.Fat ?? 0) :
-                (ms.Recipe?.Fat
-                ?? 0));
+                (ms.Recipe?.Fat ?? 0));
                 var restaurantMeals = Model.MealSlots.Count(ms => ms.IsRestaurantMeal);
             }
+
             <div class="summary-grid">
                 <div class="summary-item">
                     <div class="summary-label">Total Calories</div>
@@ -138,7 +275,9 @@
             </div>
         </div>
     </div>
+
     <div id="modalWindow"></div>
+
     <div id="deleteModal" class="modal">
         <div class="delete-modal-content modal-content">
             <div class="modal-header">
@@ -155,91 +294,15 @@
             </div>
         </div>
     </div>
+
     <form id="deleteForm" method="post" action="@Url.Action("Delete", "MealPlan")" style="display: none;">
         @Html.AntiForgeryToken()
         <input type="hidden" name="id" value="@Model.Id" />
     </form>
 </body>
-<script>
-    function showRecipeDetailsFromMealPlan(recipeId) {
-        const clickedCard = event.currentTarget;
-        clickedCard.classList.add('loading');
-        fetch(`/Recipes/Details/${recipeId}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.text();
-            })
-            .then(html => {
-                const modalContainer = document.getElementById('modalWindow');
-                modalContainer.innerHTML = html;
-                const scripts = modalContainer.querySelectorAll("script");
-                scripts.forEach(script => {
-                    const newScript = document.createElement("script");
-                    if (script.src) {
-                        newScript.src = script.src;
-                    } else {
-                        newScript.textContent = script.textContent;
-                    }
-                    document.body.appendChild(newScript);
-                    document.body.removeChild(newScript);
-                });
-                const modalElement = modalContainer.querySelector('.modal');
-                if (modalElement) {
-                    const modal = new bootstrap.Modal(modalElement);
-                    modal.show();
-                    modalElement.addEventListener('hidden.bs.modal', function () {
-                        modalContainer.innerHTML = '';
-                        clickedCard.classList.remove('loading');
-                    });
-                    modalElement.addEventListener('shown.bs.modal', function () {
-                        clickedCard.classList.remove('loading');
-                    });
-                } else {
-                    clickedCard.classList.remove('loading');
-                }
-            })
-            .catch(err => {
-                console.error("Failed to fetch recipe details", err);
-                alert("Failed to load recipe details. Please try again.");
-                clickedCard.classList.remove('loading');
-            });
-    }
-    function handleMealCardClick(event, recipeId) {
-        if (recipeId && recipeId > 0) {
-            showRecipeDetailsFromMealPlan(recipeId);
-        }
-    }
-    function showDeleteModal() {
-        document.getElementById('deleteModal').style.display = 'block';
-        document.body.style.overflow = 'hidden';
-    }
-    function hideDeleteModal() {
-        document.getElementById('deleteModal').style.display = 'none';
-        document.body.style.overflow = 'auto';
-    }
-    function confirmDelete() {
-        document.getElementById('deleteForm').submit();
-    }
-    window.onclick = function (event) {
-        const modal = document.getElementById('deleteModal');
-        if (event.target === modal) {
-            hideDeleteModal();
-        }
-    }
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') {
-            hideDeleteModal();
-        }
-    });
-    document.addEventListener('DOMContentLoaded', function () {
-        const cards = document.querySelectorAll('.day-card');
-        cards.forEach((card, index) => {
-            card.style.animationDelay = `${index * 0.1}s`;
-        });
-    });
-</script>
+
+<script src="~/js/MealPlanDetails.js"></script>
+
 @functions {
     private int GetMealOrder(string mealType)
     {

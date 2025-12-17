@@ -8,6 +8,8 @@ let currentFilters = {
 document.addEventListener("DOMContentLoaded", function () {
   initializeFilters();
   updateFilterValues();
+
+  checkForRestaurantIdParameter();
 });
 
 function itemMatchesFilters(item) {
@@ -90,16 +92,9 @@ function openMenu(restaurantId) {
 
   const query = new URLSearchParams(f).toString();
 
-  const menuContainer = document.getElementById("menuItems");
+  const menuContainer = document.getElementById("modal-content");
   menuContainer.innerHTML =
     '<div class="text-center p-4"><i class="fas fa-spinner fa-spin"></i> Loading menu...</div>';
-
-  const filterInfo = document.getElementById("filterInfo");
-  if (!areFiltersDefault()) {
-    filterInfo.style.display = "block";
-  } else {
-    filterInfo.style.display = "none";
-  }
 
   const modal = new bootstrap.Modal(document.getElementById("menuModal"));
   modal.show();
@@ -115,6 +110,18 @@ function openMenu(restaurantId) {
     .then((html) => {
       console.log("Received HTML length:", html.length);
       menuContainer.innerHTML = html;
+
+      const scripts = menuContainer.querySelectorAll("script");
+      scripts.forEach((script) => {
+        const newScript = document.createElement("script");
+        if (script.src) {
+          newScript.src = script.src;
+        } else {
+          newScript.textContent = script.textContent;
+        }
+        document.body.appendChild(newScript);
+        document.body.removeChild(newScript);
+      });
     })
     .catch((err) => {
       console.error("Failed to fetch menu details:", err);
@@ -225,4 +232,314 @@ function resetFilters() {
   updateSlider("protein");
   updateSlider("carbs");
   updateSlider("fats");
+}
+
+let userPreferences = {
+  tags: [],
+  followedRestaurants: [],
+};
+
+window.addEventListener("load", function () {
+  if (document.querySelector(".notification-bell")) {
+    loadUserPreferences();
+  }
+});
+
+async function loadUserPreferences() {
+  try {
+    const response = await fetch("/Restaurants/GetUserPreferences");
+    if (response.ok) {
+      userPreferences = await response.json();
+      updateFollowButtons();
+    }
+  } catch (error) {
+    console.error("Error loading preferences:", error);
+  }
+}
+
+function openPreferencesModal() {
+  const modal = new bootstrap.Modal(
+    document.getElementById("preferencesModal")
+  );
+
+  userPreferences.tags.forEach((tag) => {
+    const checkbox = document.getElementById(`tag-${tag}`);
+    if (checkbox) {
+      checkbox.checked = true;
+    }
+  });
+
+  modal.show();
+}
+
+async function toggleFollow(restaurantId, event) {
+  event.stopPropagation();
+
+  const token = document.querySelector(
+    'input[name="__RequestVerificationToken"]'
+  ).value;
+  const btn = event.currentTarget;
+
+  try {
+    const response = await fetch("/Restaurants/ToggleFollowRestaurant", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        RequestVerificationToken: token,
+      },
+      body: JSON.stringify(restaurantId),
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      const icon = btn.querySelector("i");
+
+      if (data.following) {
+        btn.classList.add("active");
+        icon.classList.remove("far");
+        icon.classList.add("fas");
+
+        btn.classList.add("just-activated");
+        setTimeout(() => btn.classList.remove("just-activated"), 500);
+
+        showSuccess("You will be notified when this restaurant adds new meals");
+        userPreferences.followedRestaurants.push(restaurantId);
+      } else {
+        btn.classList.remove("active");
+        icon.classList.remove("fas");
+        icon.classList.add("far");
+
+        showInfo("Notifications disabled for this restaurant");
+        userPreferences.followedRestaurants =
+          userPreferences.followedRestaurants.filter(
+            (id) => id !== restaurantId
+          );
+      }
+    }
+  } catch (error) {
+    console.error("Error toggling follow:", error);
+    showError("Error updating notification settings");
+  }
+}
+
+function updateFollowButtons() {
+  document.querySelectorAll(".notification-bell").forEach((btn) => {
+    const restaurantId = parseInt(btn.dataset.restaurantId);
+    if (userPreferences.followedRestaurants.includes(restaurantId)) {
+      btn.classList.add("active");
+      const icon = btn.querySelector("i");
+      icon.classList.remove("far");
+      icon.classList.add("fas");
+    }
+  });
+}
+
+function showSuccess(message) {
+  createToast(message, "success");
+}
+
+function showError(message) {
+  createToast(message, "danger");
+}
+
+function showInfo(message) {
+  createToast(message, "info");
+}
+
+function createToast(message, type = "info") {
+  const toastContainer =
+    document.getElementById("toast-container") || createToastContainer();
+
+  const toastId = "toast-" + Date.now();
+  const toast = document.createElement("div");
+  toast.id = toastId;
+  toast.className = `toast align-items-center text-white bg-${type} border-0`;
+  toast.setAttribute("role", "alert");
+
+  const iconMap = {
+    success: "fas fa-check-circle",
+    danger: "fas fa-exclamation-circle",
+    info: "fas fa-info-circle",
+  };
+
+  toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="${iconMap[type]} me-2"></i>
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="removeToast('${toastId}')"></button>
+        </div>
+    `;
+
+  toastContainer.appendChild(toast);
+  toast.style.display = "block";
+  setTimeout(() => toast.classList.add("show"), 100);
+  setTimeout(() => removeToast(toastId), 5000);
+}
+
+function removeToast(toastId) {
+  const toast = document.getElementById(toastId);
+  if (toast) {
+    toast.classList.remove("show");
+    setTimeout(() => toast.remove(), 300);
+  }
+}
+
+function createToastContainer() {
+  const container = document.createElement("div");
+  container.id = "toast-container";
+  container.className = "toast-container position-fixed top-0 end-0 p-3";
+  container.style.zIndex = "10000";
+  document.body.appendChild(container);
+  return container;
+}
+
+function toggleTagExpansion(tagName) {
+  const threshold = document.getElementById(`threshold-${tagName}`);
+  const tagItem = threshold.previousElementSibling;
+  const checkbox = document.getElementById(`tag-${tagName}`);
+
+  const isExpanded = threshold.classList.contains("show");
+  threshold.classList.toggle("show", !isExpanded);
+  tagItem.classList.toggle("expanded", !isExpanded);
+
+  if (!isExpanded) {
+    checkbox.checked = true;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const checkboxes = document.querySelectorAll(
+    '.tag-item input[type="checkbox"]'
+  );
+  checkboxes.forEach((checkbox) => {
+    checkbox.addEventListener("click", function (e) {
+      e.stopPropagation();
+
+      const tagName = this.value;
+      const threshold = document.getElementById(`threshold-${tagName}`);
+
+      if (!this.checked && threshold) {
+        threshold.classList.remove("show");
+        threshold.previousElementSibling.classList.remove("expanded");
+      }
+    });
+  });
+});
+
+function openPreferencesModal() {
+  const modal = new bootstrap.Modal(
+    document.getElementById("preferencesModal")
+  );
+
+  loadUserPreferencesForModal();
+
+  modal.show();
+}
+
+async function loadUserPreferencesForModal() {
+  try {
+    const response = await fetch("/Restaurants/GetUserPreferences");
+    if (response.ok) {
+      const data = await response.json();
+
+      document
+        .querySelectorAll('.tag-selection input[type="checkbox"]')
+        .forEach((cb) => {
+          cb.checked = false;
+        });
+      document.querySelectorAll(".tag-threshold").forEach((threshold) => {
+        threshold.classList.remove("show");
+      });
+      document.querySelectorAll(".tag-item").forEach((item) => {
+        item.classList.remove("expanded");
+      });
+
+      data.preferences.forEach((pref) => {
+        const checkbox = document.getElementById(`tag-${pref.tag}`);
+        if (checkbox) {
+          checkbox.checked = true;
+
+          if (
+            pref.thresholdValue !== null &&
+            pref.thresholdValue !== undefined
+          ) {
+            const valueInput = document.getElementById(`value-${pref.tag}`);
+            const threshold = document.getElementById(`threshold-${pref.tag}`);
+
+            if (valueInput && threshold) {
+              valueInput.value = pref.thresholdValue;
+              threshold.classList.add("show");
+              threshold.previousElementSibling.classList.add("expanded");
+            }
+          }
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Error loading preferences:", error);
+  }
+}
+
+async function savePreferences() {
+  const preferences = [];
+
+  document
+    .querySelectorAll('.tag-selection input[type="checkbox"]:checked')
+    .forEach((cb) => {
+      const tagValue = cb.value;
+      const valueInput = document.getElementById(`value-${tagValue}`);
+
+      const preference = {
+        tag: tagValue,
+        thresholdValue: valueInput ? parseInt(valueInput.value) : null,
+      };
+
+      preferences.push(preference);
+    });
+
+  const token = document.querySelector(
+    'input[name="__RequestVerificationToken"]'
+  ).value;
+
+  try {
+    const response = await fetch("/Restaurants/UpdateTagPreferences", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        RequestVerificationToken: token,
+      },
+      body: JSON.stringify(preferences),
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      showSuccess(
+        "Preferences saved! You will receive notifications for matching meals."
+      );
+      bootstrap.Modal.getInstance(
+        document.getElementById("preferencesModal")
+      ).hide();
+    } else {
+      showError("Failed to save preferences");
+    }
+  } catch (error) {
+    console.error("Error saving preferences:", error);
+    showError("Error saving preferences");
+  }
+}
+
+function checkForRestaurantIdParameter() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const restaurantId = urlParams.get("restaurantId");
+
+  if (restaurantId) {
+    const newUrl = window.location.pathname;
+    window.history.replaceState({}, document.title, newUrl);
+
+    setTimeout(() => {
+      openMenu(parseInt(restaurantId));
+    }, 300);
+  }
 }

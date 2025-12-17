@@ -1,4 +1,7 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Identity
+@inject UserManager<User> UserManager
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -8,6 +11,8 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="~/css/_Layout.css" />
+    <link rel="stylesheet" href="~/css/Notifications.css" />
+
 </head>
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
@@ -25,7 +30,7 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav ms-auto">
+                    <ul class="navbar-nav mx-auto">
                         <li class="nav-item">
                             <a class="nav-link @(currentController == "Home" && currentAction == "Index" ? "active-glow" : "")"
                                 href="/Home">Home</a>
@@ -48,10 +53,6 @@
                                 <a class="nav-link @(currentController == "MealPlan" && currentAction == "Index" ? "active-glow" : "") "
                                     href="/MealPlan">Meal Plans</a>
                             </li>
-                            <a class="nav-link @(currentPage == "/Account/MyAccount" ? "active-glow" : "")"
-                                href="/Identity/Account/MyAccount">
-                                My Account
-                            </a>
                             @if (User.IsInRole("Admin"))
                             {
                                 <li class="nav-item">
@@ -60,20 +61,52 @@
                                 </li>
                             }
                         }
-                        else
+                        
+                    </ul>
+                    
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        var user = await UserManager.GetUserAsync(User);
+                        var profilePicUrl = user?.ProfilePictureUrl ?? "~/images/default-profile.png";
+                        
+                        <ul class="navbar-nav ms-auto align-items-center">
+                            <li class="nav-item">
+                                <div id="notification-bell">
+                                    <div class="notification-icon">
+                                        <i class="fas fa-bell"></i>
+                                        <span class="notification-badge hidden" id="notification-count">0</span>
+                                    </div>
+                                    <div class="notification-panel" id="notification-panel">
+                                        <div id="notification-panel-content">
+                                            <!-- Partial view will load here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="nav-item">
+                                <a class="user-profile-link @(currentPage == "/Account/MyAccount" ? "active-glow-border" : "")"
+                                    href="/Identity/Account/MyAccount" title="My Account">
+                                    <img src="@profilePicUrl" alt="Profile" class="user-profile-pic" />
+                                </a>
+                            </li>
+                        </ul>
+                    }else
                         {
                             <partial name="_LoginPartial" />
                         }
-                    </ul>
                 </div>
             </div>
         </nav>
+        
     </header>
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
     </div>
+
+
+
 <footer class="text-light py-5">
     <div class="container">
         <div class="row d-flex justify-content-center text-center">
@@ -119,12 +152,14 @@
             </div>
         </div>
         <hr class="my-4">
+    
         <div class="text-center">
             <p>&copy; 2025 NutriMatch. All rights reserved.</p>
         </div>
     </div>
 </footer>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/Notifications.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

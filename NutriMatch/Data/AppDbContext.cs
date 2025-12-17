@@ -24,10 +24,17 @@ namespace NutriMatch.Data
         public DbSet<RecipeRating> RecipeRatings { get; set; }
         public DbSet<WeeklyMealPlan> WeeklyMealPlans { get; set; }
         public DbSet<MealSlot> MealSlots { get; set; }
+        
+        public DbSet<MealKeyword> MealKeywords { get; set; }
+
+        public DbSet<Notification> Notifications { get; set; }
+
+        public DbSet<UserMealPreference> UserMealPreferences { get; set; }
+        public DbSet<RestaurantFollowing> RestaurantFollowings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(modelBuilder); 
+            base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<Recipe>()
                 .HasOne(r => r.User)
@@ -61,6 +68,14 @@ namespace NutriMatch.Data
                 .HasOne(rr => rr.Recipe)
                 .WithMany(r => r.Ratings)
                 .HasForeignKey(rr => rr.RecipeId);
+
+            modelBuilder.Entity<UserMealPreference>()
+                .HasIndex(u => new { u.UserId, u.Tag })
+                .IsUnique();
+    
+            modelBuilder.Entity<RestaurantFollowing>()
+                .HasIndex(r => new { r.UserId, r.RestaurantId })
+                .IsUnique();
 
         }
     }

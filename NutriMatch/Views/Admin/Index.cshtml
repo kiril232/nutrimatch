@@ -11,6 +11,65 @@
     <link href="~/css/AdminIndex.css" rel="stylesheet">
     <title>NutriMatch - Admin Panel</title>
 </head>
+
+<style>
+/* Admin Management Section Styles */
+
+.admin-management-section {
+    padding: 15px 0;
+}
+
+.admin-management-section .btn {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px 24px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-management-section .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: #d0d0d0;
+}
+
+.admin-management-section .btn-outline-primary:hover {
+    background: #f8f9ff;
+    border-color: #4a6fa5;
+    color: #4a6fa5;
+}
+
+.admin-management-section .btn-outline-success:hover {
+    background: #f6fef9;
+    border-color: #198754;
+    color: #198754;
+}
+
+.admin-management-section .btn i {
+    font-size: 1.3rem;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+.admin-management-section .btn strong {
+    font-size: 1rem;
+    font-weight: 600;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.admin-management-section .btn .small {
+    font-size: 0.8rem;
+    opacity: 0.65;
+    display: block;
+    margin-top: 4px;
+    font-weight: 400;
+}
+</style>
 <body>
     @Html.AntiForgeryToken()
     <div class="container mt-4">
@@ -19,9 +78,8 @@
                 <div class="col-md-8">
                     <h2 class="admin-title">
                         <i class="fas fa-shield-alt me-2" style="color: var(--nutri-green);"></i>
-                        Recipe Approval Panel
+                        Admin Panel
                     </h2>
-                    <p class="admin-subtitle text-muted">Review and manage pending recipe submissions</p>
                 </div>
                 <div class="col-md-4 text-end">
                     <div class="admin-stats">
@@ -33,6 +91,27 @@
                 </div>
             </div>
         </div>
+
+        <!-- NEW ADMIN MANAGEMENT BUTTONS -->
+        <div class="admin-management-section mb-4">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <button class="btn btn-outline-primary w-100 py-3" onclick="openMealTagsModal()">
+                        <i class="fas fa-tags me-2"></i>
+                        <strong>Manage Meal Tags</strong>
+                        <div class="small text-muted">Add or remove meal type keywords</div>
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <button class="btn btn-outline-success w-100 py-3" onclick="openRestaurantMealsModal()">
+                        <i class="fas fa-utensils me-2"></i>
+                        <strong>Manage Restaurants And Meals</strong>
+                        <div class="small text-muted">Add or remove meals from restaurants</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div class="search-container">
             <div class="row align-items-center">
                 <div class="col-md-8">
@@ -146,6 +225,13 @@
     </div>
     <div id="toast-container" class="toast-container"></div>
     <div id="declineModalContainer"></div>
+
+    <!-- Meal Tags Management Modal Container -->
+    <div id="mealTagsModalContainer"></div>
+
+    <!-- Restaurant Meals Management Modal Container -->
+    <div id="restaurantMealsModalContainer"></div>
+
     <div class="modal fade" id="ingredientReviewModal" tabindex="-1" aria-labelledby="ingredientReviewModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-lg">

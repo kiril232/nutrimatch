@@ -49,6 +49,11 @@
         border-color: #bbf7d0;
         color: #166534;
     }
+    .alert-info {
+        background-color: #e0f2fe;
+        border-color: #bae6fd;
+        color: #075985;
+    }
     .profile-picture-section {
         text-align: center;
         margin-bottom: 30px;
@@ -83,21 +88,288 @@
     #whole-container {
         margin-top: 8rem;
     }
-</style>
-<div id="whole-container" class="container">
-    @if (!string.IsNullOrEmpty(Model.StatusMessage))
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @Model.StatusMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+    
+    .notification-preference-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 15px;
+        background-color: white;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        border: 1px solid #d1fae5;
+        transition: all 0.3s ease;
     }
+    
+    .notification-preference-item:hover {
+        box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
+        border-color: #86efac;
+    }
+    
+    .notification-preference-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .notification-icon-circle {
+        min-width: 40px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+    
+    .notification-icon-circle.recipe-rated {
+        background-color: #fff3cd;
+        color: #ffc107;
+    }
+    
+    .notification-icon-circle.recipe-accepted {
+        background-color: #d1f2eb;
+        color: #4caf50;
+    }
+    
+    .notification-icon-circle.recipe-declined {
+        background-color: #f8d7da;
+        color: #f44336;
+    }
+    
+    .notification-icon-circle.restaurant-meal {
+        background-color: #ffe5e5;
+        color: #ff6b6b;
+    }
+    
+    .notification-icon-circle.tags-match {
+        background-color: #d5f4f1;
+        color: #4ecdc4;
+    }
+    
+    .notification-icon-circle.new-restaurant {
+        background-color: #cfe2ff;
+        color: #007bff;
+    }
+    
+    .notification-icon-circle.meal-plan {
+        background-color: #e1d5f0;
+        color: #9c27b0;
+    }
+    
+    .notification-text {
+        flex: 1;
+    }
+    
+    .notification-title {
+        font-weight: 600;
+        color: #166534;
+        margin-bottom: 3px;
+    }
+    
+    .notification-description {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+    
+    .custom-switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 26px;
+        flex-shrink: 0;
+    }
+    
+    .custom-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #cbd5e0;
+        transition: 0.3s;
+        border-radius: 34px;
+    }
+    
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 20px;
+        width: 20px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+    }
+    
+    input:checked + .slider {
+        background-color: #22c55e;
+    }
+    
+    input:checked + .slider:before {
+        transform: translateX(24px);
+    }
+    
+    .notification-section-header {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .notification-section-header h3 {
+        color: white;
+        margin: 0;
+        border: none;
+        padding: 0;
+    }
+    
+    .notification-section-header p {
+        margin: 5px 0 0 0;
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+
+    .custom-toast {
+        min-width: 300px;
+        background-color: #22c55e;
+        color: white;
+        border-radius: 8px;
+        padding: 16px 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        animation: slideInRight 0.3s ease-out;
+        margin-bottom: 10px;
+    }
+
+    .custom-toast.toast-hide {
+        animation: slideOutRight 0.3s ease-out;
+    }
+
+    .custom-toast-icon {
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+
+    .custom-toast-content {
+        flex: 1;
+    }
+
+    .custom-toast-title {
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .custom-toast-message {
+        font-size: 0.875rem;
+        opacity: 0.95;
+    }
+
+    .custom-toast-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+        flex-shrink: 0;
+    }
+
+    .custom-toast-close:hover {
+        opacity: 1;
+    }
+
+    @@keyframes slideInRight {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @@keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+    }
+</style>
+
+<div id="whole-container" class="container">
+    <div class="toast-container" id="toastContainer"></div>
+
     <div class="row">
         <div class="col-md-3">
             <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
-                <button class="nav-link @(Model.ActiveTab != "Password" ? "active" : "")" id="v-pills-profile-tab" data-bs-toggle="pill" data-bs-target="#v-pills-profile" type="button" role="tab" aria-controls="v-pills-profile" aria-selected="true">Profile</button>
-                <button class="nav-link @(Model.ActiveTab == "Password" ? "active" : "")" id="v-pills-security-tab" data-bs-toggle="pill" data-bs-target="#v-pills-security" type="button" role="tab" aria-controls="v-pills-security" aria-selected="false">Password</button>
+                <button class="nav-link @(Model.ActiveTab != "Password" && Model.ActiveTab != "Notifications" ? "active" : "")" 
+                        id="v-pills-profile-tab" 
+                        data-bs-toggle="pill" 
+                        data-bs-target="#v-pills-profile" 
+                        type="button" 
+                        role="tab" 
+                        aria-controls="v-pills-profile" 
+                        aria-selected="true">
+                    <i class="fas fa-user me-2"></i>Profile
+                </button>
+                
+                <button class="nav-link @(Model.ActiveTab == "Password" ? "active" : "")" 
+                        id="v-pills-security-tab" 
+                        data-bs-toggle="pill" 
+                        data-bs-target="#v-pills-security" 
+                        type="button" 
+                        role="tab" 
+                        aria-controls="v-pills-security" 
+                        aria-selected="false">
+                    <i class="fas fa-lock me-2"></i>Password
+                </button>
+                
+                <button class="nav-link @(Model.ActiveTab == "Notifications" ? "active" : "")" 
+                        id="v-pills-notifications-tab" 
+                        data-bs-toggle="pill" 
+                        data-bs-target="#v-pills-notifications" 
+                        type="button" 
+                        role="tab" 
+                        aria-controls="v-pills-notifications" 
+                        aria-selected="false">
+                    <i class="fas fa-bell me-2"></i>Notifications
+                </button>
+                
                 <hr class="my-3">
+                
                 <form method="post" asp-page-handler="Logout" class="d-inline">
                     <button type="submit" class="nav-link text-danger border-0 bg-transparent w-100 text-start">
                         <i class="fas fa-sign-out-alt me-2"></i>Log Out
@@ -105,13 +377,19 @@
                 </form>
             </div>
         </div>
+
         <div class="col-md-9">
             <div class="tab-content" id="v-pills-tabContent">
-                <div class="tab-pane fade @(Model.ActiveTab != "Password" ? "show active" : "")" id="v-pills-profile" role="tabpanel" aria-labelledby="v-pills-profile-tab">
+                
+                <div class="tab-pane fade @(Model.ActiveTab != "Password" && Model.ActiveTab != "Notifications" ? "show active" : "")" 
+                     id="v-pills-profile" 
+                     role="tabpanel" 
+                     aria-labelledby="v-pills-profile-tab">
                     <div class="account-section">
                         <form method="post" asp-page-handler="UpdateProfile" enctype="multipart/form-data">
                             <h3>Profile Information</h3>
                             <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+                            
                             <div class="profile-picture-section">
                                 <img src="@Model.ProfilePictureUrl" alt="Profile Picture" class="profile-picture" id="profilePreview" />
                                 <div class="profile-picture-upload">
@@ -120,43 +398,218 @@
                                     <span asp-validation-for="ProfileInput.ProfilePicture" class="text-danger"></span>
                                 </div>
                             </div>
+
                             <div class="form-floating mb-3">
                                 <input asp-for="ProfileInput.UserName" class="form-control" placeholder="Username" />
                                 <label asp-for="ProfileInput.UserName" class="form-label">Username</label>
                                 <span asp-validation-for="ProfileInput.UserName" class="text-danger"></span>
                             </div>
+
                             <div class="form-floating mb-3">
                                 <input asp-for="ProfileInput.Email" class="form-control" placeholder="Email" />
                                 <label asp-for="ProfileInput.Email" class="form-label">Email Address</label>
                                 <span asp-validation-for="ProfileInput.Email" class="text-danger"></span>
                             </div>
-                            <button type="submit" class="btn btn-primary">Update Profile</button>
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Update Profile
+                            </button>
                             @Html.AntiForgeryToken()
                         </form>
                     </div>
                 </div>
-                <div class="tab-pane fade @(Model.ActiveTab == "Password" ? "show active" : "")" id="v-pills-security" role="tabpanel" aria-labelledby="v-pills-security-tab">
+
+                <div class="tab-pane fade @(Model.ActiveTab == "Password" ? "show active" : "")" 
+                     id="v-pills-security" 
+                     role="tabpanel" 
+                     aria-labelledby="v-pills-security-tab">
                     <div class="account-section">
                         <form method="post" asp-page-handler="ChangePassword">
-                            <h3>Change Password</h3>
-                            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-                            <div class="form-floating mb-3">
-                                <input asp-for="PasswordInput.CurrentPassword" type="password" class="form-control" placeholder="Current Password" />
-                                <label asp-for="PasswordInput.CurrentPassword" class="form-label">Current Password</label>
-                                <span asp-validation-for="PasswordInput.CurrentPassword" class="text-danger"></span>
-                            </div>
+                            @if (Model.HasPassword)
+                            {
+                                <h3>Change Password</h3>
+                                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+                                <div class="form-floating mb-3">
+                                    <input asp-for="PasswordInput.CurrentPassword" type="password" class="form-control" placeholder="Current Password" />
+                                    <label asp-for="PasswordInput.CurrentPassword" class="form-label">Current Password</label>
+                                    <span asp-validation-for="PasswordInput.CurrentPassword" class="text-danger"></span>
+                                </div>
+                            }
+                            else
+                            {
+                                <h3>Set Password</h3>
+                                <div class="alert alert-info" role="alert">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    You signed in using an external provider (like Google). Set a password to enable direct login with your email and password.
+                                </div>
+                                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+                            }
+                            
                             <div class="form-floating mb-3">
                                 <input asp-for="PasswordInput.NewPassword" type="password" class="form-control" placeholder="New Password" />
-                                <label asp-for="PasswordInput.NewPassword" class="form-label">New Password</label>
+                                <label asp-for="PasswordInput.NewPassword" class="form-label">@(Model.HasPassword ? "New Password" : "Password")</label>
                                 <span asp-validation-for="PasswordInput.NewPassword" class="text-danger"></span>
                             </div>
+                            
                             <div class="form-floating mb-3">
                                 <input asp-for="PasswordInput.ConfirmPassword" type="password" class="form-control" placeholder="Confirm New Password" />
-                                <label asp-for="PasswordInput.ConfirmPassword" class="form-label">Confirm New Password</label>
+                                <label asp-for="PasswordInput.ConfirmPassword" class="form-label">@(Model.HasPassword ? "Confirm New Password" : "Confirm Password")</label>
                                 <span asp-validation-for="PasswordInput.ConfirmPassword" class="text-danger"></span>
                             </div>
-                            <button type="submit" class="btn btn-primary">Change Password</button>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-lock me-2"></i>@(Model.HasPassword ? "Change Password" : "Set Password")
+                            </button>
                             <input name="__RequestVerificationToken" type="hidden" value="@Html.AntiForgeryToken().ToString()" />
+                        </form>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade @(Model.ActiveTab == "Notifications" ? "show active" : "")" 
+                     id="v-pills-notifications" 
+                     role="tabpanel" 
+                     aria-labelledby="v-pills-notifications-tab">
+                    <div class="account-section">
+                        <form method="post" asp-page-handler="UpdateNotificationPreferences">
+                            
+                            <h3>User Preferences</h3>
+                            
+                            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+
+                            <div class="notification-preference-item">
+                                <div class="notification-preference-info">
+                                    <div class="notification-icon-circle recipe-rated">
+                                        <i class="fas fa-star"></i>
+                                    </div>
+                                    <div class="notification-text">
+                                        <div class="notification-title">Recipe Rated</div>
+                                        <div class="notification-description">Get notified when someone rates your recipe</div>
+                                    </div>
+                                </div>
+                                <label class="custom-switch">
+                                    <input asp-for="NotificationPreferences.NotifyRecipeRated" type="checkbox" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="notification-preference-item">
+                                <div class="notification-preference-info">
+                                    <div class="notification-icon-circle recipe-accepted">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <div class="notification-text">
+                                        <div class="notification-title">Recipe Accepted</div>
+                                        <div class="notification-description">Get notified when your recipe is accepted by admin</div>
+                                    </div>
+                                </div>
+                                <label class="custom-switch">
+                                    <input asp-for="NotificationPreferences.NotifyRecipeAccepted" type="checkbox" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="notification-preference-item">
+                                <div class="notification-preference-info">
+                                    <div class="notification-icon-circle recipe-declined">
+                                        <i class="fas fa-times-circle"></i>
+                                    </div>
+                                    <div class="notification-text">
+                                        <div class="notification-title">Recipe Declined</div>
+                                        <div class="notification-description">Get notified when your recipe is declined by admin</div>
+                                    </div>
+                                </div>
+                                <label class="custom-switch">
+                                    <input asp-for="NotificationPreferences.NotifyRecipeDeclined" type="checkbox" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="notification-preference-item">
+                                <div class="notification-preference-info">
+                                    <div class="notification-icon-circle restaurant-meal">
+                                        <i class="fas fa-utensils"></i>
+                                    </div>
+                                    <div class="notification-text">
+                                        <div class="notification-title">Restaurant New Meal</div>
+                                        <div class="notification-description">Get notified about new meals from restaurants you follow</div>
+                                    </div>
+                                </div>
+                                <label class="custom-switch">
+                                    <input asp-for="NotificationPreferences.NotifyRestaurantNewMeal" type="checkbox" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="notification-preference-item">
+                                <div class="notification-preference-info">
+                                    <div class="notification-icon-circle tags-match">
+                                        <i class="fas fa-tags"></i>
+                                    </div>
+                                    <div class="notification-text">
+                                        <div class="notification-title">Meal Matches Tags</div>
+                                        <div class="notification-description">Get notified when new meals match your dietary preferences</div>
+                                    </div>
+                                </div>
+                                <label class="custom-switch">
+                                    <input asp-for="NotificationPreferences.NotifyMealMatchesTags" type="checkbox" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="notification-preference-item">
+                                <div class="notification-preference-info">
+                                    <div class="notification-icon-circle tags-match">
+                                        <i class="fas fa-tags"></i>
+                                    </div>
+                                    <div class="notification-text">
+                                        <div class="notification-title">Recipe Matches Tags</div>
+                                        <div class="notification-description">Get notified when new recipes match your dietary preferences</div>
+                                    </div>
+                                </div>
+                                <label class="custom-switch">
+                                    <input asp-for="NotificationPreferences.NotifyRecipeMatchesTags" type="checkbox" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="notification-preference-item">
+                                <div class="notification-preference-info">
+                                    <div class="notification-icon-circle new-restaurant">
+                                        <i class="fas fa-store"></i>
+                                    </div>
+                                    <div class="notification-text">
+                                        <div class="notification-title">New Restaurant</div>
+                                        <div class="notification-description">Get notified when new restaurants are added to the platform</div>
+                                    </div>
+                                </div>
+                                <label class="custom-switch">
+                                    <input asp-for="NotificationPreferences.NotifyNewRestaurant" type="checkbox" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="notification-preference-item">
+                                <div class="notification-preference-info">
+                                    <div class="notification-icon-circle meal-plan">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </div>
+                                    <div class="notification-text">
+                                        <div class="notification-title">Meal Plan Updated</div>
+                                        <div class="notification-description">Get notified about updates to your meal plans</div>
+                                    </div>
+                                </div>
+                                <label class="custom-switch">
+                                    <input asp-for="NotificationPreferences.NotifyMealPlanUpdated" type="checkbox" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+
+                            <input type="hidden" name="ActiveTab" value="Notifications" />
+
+                            <button type="submit" class="btn btn-primary mt-3">
+                                <i class="fas fa-save me-2"></i>Save Preferences
+                            </button>
+                            @Html.AntiForgeryToken()
                         </form>
                     </div>
                 </div>
@@ -164,6 +617,7 @@
         </div>
     </div>
 </div>
+
 <script>
     function previewImage(input) {
         if (input.files && input.files[0]) {
@@ -174,7 +628,50 @@
             reader.readAsDataURL(input.files[0]);
         }
     }
+
+    function showToast(title, message, duration = 4000) {
+        const toastContainer = document.getElementById('toastContainer');
+        
+        const toast = document.createElement('div');
+        toast.className = 'custom-toast';
+        toast.innerHTML = `
+            <div class="custom-toast-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="custom-toast-content">
+                <div class="custom-toast-title">${title}</div>
+                <div class="custom-toast-message">${message}</div>
+            </div>
+            <button class="custom-toast-close" onclick="closeToast(this)">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        toastContainer.appendChild(toast);
+        
+        setTimeout(() => {
+            closeToast(toast.querySelector('.custom-toast-close'));
+        }, duration);
+    }
+
+    function closeToast(button) {
+        const toast = button.closest('.custom-toast');
+        toast.classList.add('toast-hide');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        @if (!string.IsNullOrEmpty(Model.StatusMessage))
+        {
+            <text>
+            showToast('Success', '@Model.StatusMessage');
+            </text>
+        }
+    });
 </script>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 }

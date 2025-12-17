@@ -1,0 +1,199 @@
+<div class="modal fade" id="restaurantMealsModal" tabindex="-1" aria-labelledby="restaurantMealsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="restaurantMealsModalLabel">
+                    <i class="fas fa-utensils me-2"></i>Manage Restaurant Meals
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Restaurant Selection -->
+                <div class="restaurant-select-section mb-4">
+                    <div class="d-flex justify-content-between align-items-end mb-2">
+                        <label for="restaurantSelect" class="form-label fw-bold mb-0">
+                            <i class="fas fa-store me-2"></i>Select Restaurant
+                        </label>
+                        <div class="d-flex gap-2">
+
+                        <button class="btn btn-sm btn-outline-danger" id="deleteRestaurantBtn" style="display: none;" onclick="deleteRestaurant()">
+                            <i class="fas fa-trash me-1"></i>Delete Restaurant
+                        </button>
+                            <button class="btn btn-sm btn-outline-primary" id="editRestaurantBtn" style="display: none;" onclick="showEditRestaurantForm()">
+                                <i class="fas fa-edit me-1"></i>Edit Restaurant
+                            </button>
+                            <button class="btn btn-sm btn-outline-success" onclick="showAddRestaurantForm()">
+                                <i class="fas fa-plus me-1"></i>Add New Restaurant
+                            </button>
+                        </div>
+                    </div>
+                    <select class="form-select form-select-lg" id="restaurantSelect" onchange="loadRestaurantMeals(this.value)">
+                        <option value="">Loading restaurants...</option>
+                    </select>
+                </div>
+
+                <!-- Add/Edit Restaurant Form Section -->
+                <div id="addRestaurantFormSection" class="add-restaurant-section mb-4 p-4 bg-light rounded" style="display: none;">
+                    <h6 class="mb-3" id="restaurantFormTitle">
+                        <i class="fas fa-store-alt me-2"></i>Add New Restaurant
+                    </h6>
+                    <form id="addRestaurantForm">
+                        <input type="hidden" id="editRestaurantId" value="">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="restaurantName" class="form-label">Restaurant Name *</label>
+                                <input type="text" class="form-control" id="restaurantName" placeholder="e.g., Healthy Bites Cafe" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="restaurantImage" class="form-label">Restaurant Image *</label>
+                                <input type="file" class="form-control" id="restaurantImage" accept="image/*" onchange="previewImage()">
+                                <small class="text-muted">Accepted formats: JPG, PNG, GIF (Max 5MB)</small>
+                            </div>
+                            <div class="col-12" id="imagePreview" style="display: none;">
+                                <label class="form-label">Image Preview</label>
+                                <div class="border rounded p-2 text-center bg-white">
+                                    <img id="previewImg" src="" alt="Preview" style="max-width: 300px; max-height: 200px; object-fit: contain;">
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label for="restaurantDescription" class="form-label">Description</label>
+                                <textarea class="form-control" id="restaurantDescription" rows="2" placeholder="Brief description of the restaurant"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-success flex-grow-1" onclick="addRestaurant()">
+                                        <i class="fas fa-check me-2"></i>Add Restaurant
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="cancelAddRestaurant()">
+                                        <i class="fas fa-times me-2"></i>Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <hr>
+
+                <!-- Add New Meal Button -->
+                <div class="text-end mb-3" id="showAddMealBtn" style="display: none;">
+                    <button class="btn btn-success" onclick="showAddMealForm()">
+                        <i class="fas fa-plus me-2"></i>Add New Meal
+                    </button>
+                </div>
+
+                <!-- Add Meal Form Section -->
+                <div id="addMealFormSection" class="add-meal-section mb-4 p-4 bg-light rounded" style="display: none;">
+                    <h6 class="mb-3" id="addMealFormTitle">
+                        <i class="fas fa-plus-circle me-2"></i>Add New Meal
+                    </h6>
+                    <form id="addMealForm">
+                        <input type="hidden" id="editMealId" value="">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label for="mealItemName" class="form-label">Meal Name *</label>
+                                <input type="text" class="form-control" id="mealItemName" placeholder="e.g., Grilled Chicken Salad" required>
+                            </div>
+                            <div class="col-12">
+                                <label for="mealItemDescription" class="form-label">Description</label>
+                                <textarea class="form-control" id="mealItemDescription" rows="2" placeholder="Brief description of the meal"></textarea>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="mealCalories" class="form-label">Calories</label>
+                                <input type="number" class="form-control" id="mealCalories" step="0.1" min="0" placeholder="0" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="mealProtein" class="form-label">Protein (g)</label>
+                                <input type="number" class="form-control" id="mealProtein" step="0.1" min="0" placeholder="0" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="mealCarbs" class="form-label">Carbs (g)</label>
+                                <input type="number" class="form-control" id="mealCarbs" step="0.1" min="0" placeholder="0" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="mealFat" class="form-label">Fat (g)</label>
+                                <input type="number" class="form-control" id="mealFat" step="0.1" min="0" placeholder="0" required>
+                            </div>
+                            <div class="col-12">
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-success flex-grow-1" onclick="addRestaurantMeal()">
+                                        <i class="fas fa-check me-2"></i>Add Meal
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="cancelAddMeal()">
+                                        <i class="fas fa-times me-2"></i>Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Existing Meals List -->
+                <div class="existing-meals-section">
+                    <h6 class="mb-3">
+                        <i class="fas fa-list me-2"></i>Existing Meals
+                    </h6>
+                    <div id="restaurantMealsList">
+                        <p class="text-muted text-center py-4">Please select a restaurant to view meals</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.add-meal-section {
+    border: 2px dashed #198754;
+}
+
+.add-restaurant-section {
+    border: 2px dashed #0d6efd;
+}
+
+.meals-grid {
+    display: grid;
+    gap: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.meal-card {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    transition: box-shadow 0.3s ease;
+}
+
+.meal-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.meal-name {
+    color: #333;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.meal-description {
+    margin-bottom: 8px;
+}
+
+.meal-types {
+    margin-bottom: 8px;
+}
+
+.meal-macros {
+    padding-top: 8px;
+    border-top: 1px solid #e9ecef;
+    color: #666;
+}
+
+#imagePreview img {
+    border-radius: 8px;
+}
+</style>

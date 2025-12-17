@@ -1,6 +1,23 @@
+document.addEventListener("DOMContentLoaded", function () {
+  const urlParams = new URLSearchParams(window.location.search);
+  const openDeclineModalRecipeId = urlParams.get("openDeclineModal");
+
+  if (openDeclineModalRecipeId) {
+    setTimeout(function () {
+      showRecipeDetails(openDeclineModalRecipeId, true, "Declined");
+    }, 300);
+
+    const newUrl = window.location.pathname;
+    window.history.replaceState({}, document.title, newUrl);
+  }
+});
+
 function showRecipeDetails(recipeId, isOwner, recipeStatus) {
-  const clickedCard = event.currentTarget;
-  clickedCard.classList.add("loading");
+  const clickedCard = event && event.currentTarget ? event.currentTarget : null;
+
+  if (clickedCard) {
+    clickedCard.classList.add("loading");
+  }
 
   const params = new URLSearchParams({
     isOwner: isOwner,
@@ -37,20 +54,28 @@ function showRecipeDetails(recipeId, isOwner, recipeStatus) {
 
         modalElement.addEventListener("hidden.bs.modal", function () {
           modalContainer.innerHTML = "";
-          clickedCard.classList.remove("loading");
+          if (clickedCard) {
+            clickedCard.classList.remove("loading");
+          }
         });
 
         modalElement.addEventListener("shown.bs.modal", function () {
-          clickedCard.classList.remove("loading");
+          if (clickedCard) {
+            clickedCard.classList.remove("loading");
+          }
         });
       } else {
-        clickedCard.classList.remove("loading");
+        if (clickedCard) {
+          clickedCard.classList.remove("loading");
+        }
       }
     })
     .catch((err) => {
       console.error("Failed to fetch recipe details", err);
       alert("Failed to load recipe details. Please try again.");
-      clickedCard.classList.remove("loading");
+      if (clickedCard) {
+        clickedCard.classList.remove("loading");
+      }
     });
 }
 

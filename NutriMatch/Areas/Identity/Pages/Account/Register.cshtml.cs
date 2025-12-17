@@ -80,6 +80,39 @@ namespace NutriMatch.Areas.Identity.Pages.Account
 
             if (ModelState.IsValid)
             {
+                var existingUser = await _userManager.FindByEmailAsync(Input.Email);
+
+                if (existingUser != null)
+                {
+                    var hasPassword = await _userManager.HasPasswordAsync(existingUser);
+
+                    if (!hasPassword)
+                    {
+                        var logins = await _userManager.GetLoginsAsync(existingUser);
+                        var providers = string.Join(" or ", logins.Select(l => l.LoginProvider));
+
+                        ModelState.AddModelError(string.Empty,
+                            $"An account with {Input.Email} already exists. " +
+                            $"You previously registered using {providers}. " +
+                            "Please use that login method, or you can add a password to your existing account in your profile settings.");
+                    }
+                    else
+                    {
+                        ModelState.AddModelError(string.Empty,
+                            "An account with this email already exists.");
+                    }
+
+                    return Page();
+                }
+
+                var existingUsername = await _userManager.FindByNameAsync(Input.Username);
+                if (existingUsername != null)
+                {
+                    ModelState.AddModelError(nameof(Input.Username),
+                        "This username is already taken. Please choose another.");
+                    return Page();
+                }
+
                 var user = CreateUser();
                 user.ProfilePictureUrl = "/images/DefaultProfile.png";
 
@@ -93,26 +126,11 @@ namespace NutriMatch.Areas.Identity.Pages.Account
                     _logger.LogInformation("User created a new account with password.");
 
                     var userId = await _userManager.GetUserIdAsync(user);
-                    var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                    code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-                    var callbackUrl = Url.Page(
-                        "/Account/ConfirmEmail",
-                        pageHandler: null,
-                        values: new { area = "Identity", userId = userId, code = code, returnUrl = returnUrl },
-                        protocol: Request.Scheme);
 
-                    await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
-                        $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                    await _signInManager.SignInAsync(user, isPersistent: false);
 
-                    if (_userManager.Options.SignIn.RequireConfirmedAccount)
-                    {
-                        return RedirectToPage("RegisterConfirmation", new { email = Input.Email, returnUrl = returnUrl });
-                    }
-                    else
-                    {
-                        await _signInManager.SignInAsync(user, isPersistent: false);
-                        return LocalRedirect(returnUrl);
-                    }
+                    return LocalRedirect(returnUrl);
+
                 }
                 foreach (var error in result.Errors)
                 {

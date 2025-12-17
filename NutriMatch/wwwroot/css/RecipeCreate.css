@@ -4,8 +4,9 @@
     box-sizing: border-box;
 }
 
+
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #fafbfc;
     color: #1a1a1a;
     line-height: 1.6;

@@ -20,6 +20,8 @@ document.addEventListener("DOMContentLoaded", function () {
   initializeInfiniteScroll();
 
   filterRecipes();
+
+  checkForRecipeIdParameter();
 });
 
 function initializeInfiniteScroll() {
@@ -326,7 +328,7 @@ function resetFilters() {
   document.getElementById("proteinMin").value = 0;
   document.getElementById("proteinMax").value = 150;
   document.getElementById("carbsMin").value = 0;
-  document.getElementById("carbsMax").value = 150;
+  document.getElementById("carbsMax").value = 200;
   document.getElementById("fatsMin").value = 0;
   document.getElementById("fatsMax").value = 150;
   document.getElementById("searchInput").value = "";
@@ -492,4 +494,282 @@ function toggleFavoritesFilter() {
   }
 
   filterRecipes();
+}
+
+let userPreferences = {
+  tags: [],
+  followedRestaurants: [],
+};
+
+window.addEventListener("load", function () {
+  if (document.querySelector(".notification-bell")) {
+    loadUserPreferences();
+  }
+});
+
+async function loadUserPreferences() {
+  try {
+    const response = await fetch("/Restaurants/GetUserPreferences");
+    if (response.ok) {
+      userPreferences = await response.json();
+      updateFollowButtons();
+    }
+  } catch (error) {
+    console.error("Error loading preferences:", error);
+  }
+}
+
+function toggleTagExpansion(tagName) {
+  const threshold = document.getElementById(`threshold-${tagName}`);
+  const tagItem = threshold.previousElementSibling;
+  const checkbox = document.getElementById(`tag-${tagName}`);
+
+  const isExpanded = threshold.classList.contains("show");
+  threshold.classList.toggle("show", !isExpanded);
+  tagItem.classList.toggle("expanded", !isExpanded);
+
+  if (!isExpanded) {
+    checkbox.checked = true;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const checkboxes = document.querySelectorAll(
+    '.tag-item input[type="checkbox"]'
+  );
+  checkboxes.forEach((checkbox) => {
+    checkbox.addEventListener("click", function (e) {
+      e.stopPropagation();
+
+      const tagName = this.value;
+      const threshold = document.getElementById(`threshold-${tagName}`);
+
+      if (!this.checked && threshold) {
+        threshold.classList.remove("show");
+        threshold.previousElementSibling.classList.remove("expanded");
+      }
+    });
+  });
+});
+
+function openPreferencesModal() {
+  const modal = new bootstrap.Modal(
+    document.getElementById("preferencesModal")
+  );
+
+  loadUserPreferencesForModal();
+
+  modal.show();
+}
+
+async function loadUserPreferencesForModal() {
+  try {
+    const response = await fetch("/Restaurants/GetUserPreferences");
+    if (response.ok) {
+      const data = await response.json();
+
+      document
+        .querySelectorAll('.tag-selection input[type="checkbox"]')
+        .forEach((cb) => {
+          cb.checked = false;
+        });
+      document.querySelectorAll(".tag-threshold").forEach((threshold) => {
+        threshold.classList.remove("show");
+      });
+      document.querySelectorAll(".tag-item").forEach((item) => {
+        item.classList.remove("expanded");
+      });
+
+      data.preferences.forEach((pref) => {
+        const checkbox = document.getElementById(`tag-${pref.tag}`);
+        if (checkbox) {
+          checkbox.checked = true;
+
+          if (
+            pref.thresholdValue !== null &&
+            pref.thresholdValue !== undefined
+          ) {
+            const valueInput = document.getElementById(`value-${pref.tag}`);
+            const threshold = document.getElementById(`threshold-${pref.tag}`);
+
+            if (valueInput && threshold) {
+              valueInput.value = pref.thresholdValue;
+              threshold.classList.add("show");
+              threshold.previousElementSibling.classList.add("expanded");
+            }
+          }
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Error loading preferences:", error);
+  }
+}
+
+async function savePreferences() {
+  const preferences = [];
+
+  document
+    .querySelectorAll('.tag-selection input[type="checkbox"]:checked')
+    .forEach((cb) => {
+      const tagValue = cb.value;
+      const valueInput = document.getElementById(`value-${tagValue}`);
+
+      const preference = {
+        tag: tagValue,
+        thresholdValue: valueInput ? parseInt(valueInput.value) : null,
+      };
+
+      preferences.push(preference);
+    });
+
+  const token = document.querySelector(
+    'input[name="__RequestVerificationToken"]'
+  ).value;
+
+  try {
+    const response = await fetch("/Restaurants/UpdateTagPreferences", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        RequestVerificationToken: token,
+      },
+      body: JSON.stringify(preferences),
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      showSuccess(
+        "Preferences saved! You will receive notifications for matching meals."
+      );
+      bootstrap.Modal.getInstance(
+        document.getElementById("preferencesModal")
+      ).hide();
+    } else {
+      showError("Failed to save preferences");
+    }
+  } catch (error) {
+    console.error("Error saving preferences:", error);
+    showError("Error saving preferences");
+  }
+}
+
+function showSuccess(message) {
+  createToast(message, "success");
+}
+
+function showError(message) {
+  createToast(message, "danger");
+}
+
+function showInfo(message) {
+  createToast(message, "info");
+}
+
+function createToast(message, type = "info") {
+  const toastContainer =
+    document.getElementById("toast-container") || createToastContainer();
+
+  const toastId = "toast-" + Date.now();
+  const toast = document.createElement("div");
+  toast.id = toastId;
+  toast.className = `toast align-items-center text-white bg-${type} border-0`;
+  toast.setAttribute("role", "alert");
+
+  const iconMap = {
+    success: "fas fa-check-circle",
+    danger: "fas fa-exclamation-circle",
+    info: "fas fa-info-circle",
+  };
+
+  toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="${iconMap[type]} me-2"></i>
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="removeToast('${toastId}')"></button>
+        </div>
+    `;
+
+  toastContainer.appendChild(toast);
+  toast.style.display = "block";
+  setTimeout(() => toast.classList.add("show"), 100);
+  setTimeout(() => removeToast(toastId), 5000);
+}
+
+function removeToast(toastId) {
+  const toast = document.getElementById(toastId);
+  if (toast) {
+    toast.classList.remove("show");
+    setTimeout(() => toast.remove(), 300);
+  }
+}
+
+function createToastContainer() {
+  const container = document.createElement("div");
+  container.id = "toast-container";
+  container.className = "toast-container position-fixed top-0 end-0 p-3";
+  container.style.zIndex = "10000";
+  document.body.appendChild(container);
+  return container;
+}
+
+function checkForRecipeIdParameter() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const recipeId = urlParams.get("recipeId");
+
+  if (recipeId) {
+    const newUrl = window.location.pathname;
+    window.history.replaceState({}, document.title, newUrl);
+    al;
+    setTimeout(() => {
+      showRecipeDetailsFromNotification(recipeId);
+    }, 300);
+  }
+}
+
+function showRecipeDetailsFromNotification(recipeId) {
+  const params = new URLSearchParams({
+    isOwner: false,
+    recipeDetailsDisplayContorol: "Index",
+  });
+
+  fetch(`/Recipes/Details/${recipeId}?${params}`)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      return response.text();
+    })
+    .then((html) => {
+      const modalContainer = document.getElementById("modalWindow");
+      modalContainer.innerHTML = html;
+
+      const scripts = modalContainer.querySelectorAll("script");
+      scripts.forEach((script) => {
+        const newScript = document.createElement("script");
+        if (script.src) {
+          newScript.src = script.src;
+        } else {
+          newScript.textContent = script.textContent;
+        }
+        document.body.appendChild(newScript);
+        document.body.removeChild(newScript);
+      });
+
+      const modalElement = modalContainer.querySelector(".modal");
+      if (modalElement) {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+
+        modalElement.addEventListener("hidden.bs.modal", function () {
+          modalContainer.innerHTML = "";
+        });
+      }
+    })
+    .catch((err) => {
+      console.error("Failed to fetch recipe details", err);
+      showToast("Failed to load recipe details. Please try again.", "error");
+    });
 }

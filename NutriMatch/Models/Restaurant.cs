@@ -14,5 +14,7 @@ namespace NutriMatch.Models
         public String Description {get; set; }
 
         virtual public List<RestaurantMeal> RestaurantMeals { get; set; }
+
+        public virtual ICollection<RestaurantFollowing> Followers { get; set; }
     }
 }

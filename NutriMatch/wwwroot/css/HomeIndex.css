@@ -418,11 +418,8 @@ trending-section {
 }
 
 
-.restaurant-card:nth-child(1) { animation-delay: 0s; top: 20px; }
-.restaurant-card:nth-child(2) { animation-delay: -4s; top: 20px; }
-.restaurant-card:nth-child(3) { animation-delay: -8s; top: 20px; }
-.restaurant-card:nth-child(4) { animation-delay: -12s; top: 20px; }
-.restaurant-card:nth-child(5) { animation-delay: -16s; top: 20px; }
+
+
 
 .daily-dish {
     margin-left: 100px;

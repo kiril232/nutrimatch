@@ -11,5 +11,9 @@ namespace NutriMatch.Models
         public Recipe? Recipe { get; set; }
         public RestaurantMeal? RestaurantMeal { get; set; }
         public bool IsRestaurantMeal { get; set; }
+
+        public bool? IsRegenerated { get; set; } = false;
+        
+        public bool? isViewed { get; set; } = false;
     }
 }

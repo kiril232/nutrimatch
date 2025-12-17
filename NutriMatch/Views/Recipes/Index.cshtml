@@ -27,6 +27,13 @@
                 Filter by Macronutrients
                 <button class="btn btn-outline-secondary btn-sm ms-3" onclick="resetFilters()"><i
                         class="fas fa-undo me-1"></i>Reset Filters</button>
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <button style="float: right;" class="btn btn-success" onclick="openPreferencesModal()">
+                        <i class="fas fa-sliders-h me-2"></i>Recipe Preferences & Notifications
+                    </button>
+                }
+            </h4>
             </h4>
             <div class="row">
                 <div class="col-md-6 col-lg-3">
@@ -169,6 +176,153 @@
             </p>
         </div>
     </div>
+    <!-- Preferences Modal -->
+        <div class="modal fade" id="preferencesModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content modal-content-preferences">
+                    <div class="modal-header modal-header-preferences">
+                        <h5 class="modal-title">Recipe Preferences & Notifications</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small mb-3">
+                            <i class="fas fa-bell me-1"></i>
+                            Get notified when new recipes matching your preferences are added
+                        </p>
+                        
+                        <div class="tag-selection">
+                            <!-- High Protein -->
+                            <div class="tag-item-wrapper">
+                                <div class="tag-item" onclick="toggleTagExpansion('high-protein')">
+                                    <input type="checkbox" id="tag-high-protein" value="high-protein">
+                                    <label for="tag-high-protein">
+                                        <i class="fas fa-drumstick-bite"></i> High Protein
+                                    </label>
+                                    <i class="fas fa-chevron-down expand-icon"></i>
+                                </div>
+                                <div class="tag-threshold" id="threshold-high-protein">
+                                    <label class="small text-muted">Minimum protein (g):</label>
+                                    <input type="number" class="form-control form-control-sm" 
+                                        id="value-high-protein" min="10" max="150" value="30" step="5">
+                                </div>
+                            </div>
+
+                            <!-- Low Carb -->
+                            <div class="tag-item-wrapper">
+                                <div class="tag-item" onclick="toggleTagExpansion('low-carb')">
+                                    <input type="checkbox" id="tag-low-carb" value="low-carb">
+                                    <label for="tag-low-carb">
+                                        <i class="fas fa-bread-slice"></i> Low Carb
+                                    </label>
+                                    <i class="fas fa-chevron-down expand-icon"></i>
+                                </div>
+                                <div class="tag-threshold" id="threshold-low-carb">
+                                    <label class="small text-muted">Maximum carbs (g):</label>
+                                    <input type="number" class="form-control form-control-sm" 
+                                        id="value-low-carb" min="5" max="100" value="20" step="5">
+                                </div>
+                            </div>
+
+                            <!-- High Carb -->
+                            <div class="tag-item-wrapper">
+                                <div class="tag-item" onclick="toggleTagExpansion('high-carb')">
+                                    <input type="checkbox" id="tag-high-carb" value="high-carb">
+                                    <label for="tag-high-carb">
+                                        <i class="fas fa-bread-slice"></i> High Carb
+                                    </label>
+                                    <i class="fas fa-chevron-down expand-icon"></i>
+                                </div>
+                                <div class="tag-threshold" id="threshold-high-carb">
+                                    <label class="small text-muted">Minimum carbs (g):</label>
+                                    <input type="number" class="form-control form-control-sm" 
+                                        id="value-high-carb" min="30" max="150" value="50" step="5">
+                                </div>
+                            </div>
+
+                            <!-- Low Fat -->
+                            <div class="tag-item-wrapper">
+                                <div class="tag-item" onclick="toggleTagExpansion('low-fat')">
+                                    <input type="checkbox" id="tag-low-fat" value="low-fat">
+                                    <label for="tag-low-fat">
+                                        <i class="fas fa-tint"></i> Low Fat
+                                    </label>
+                                    <i class="fas fa-chevron-down expand-icon"></i>
+                                </div>
+                                <div class="tag-threshold" id="threshold-low-fat">
+                                    <label class="small text-muted">Maximum fat (g):</label>
+                                    <input type="number" class="form-control form-control-sm" 
+                                        id="value-low-fat" min="5" max="50" value="15" step="5">
+                                </div>
+                            </div>
+
+                            <!-- High Fat -->
+                            <div class="tag-item-wrapper">
+                                <div class="tag-item" onclick="toggleTagExpansion('high-fat')">
+                                    <input type="checkbox" id="tag-high-fat" value="high-fat">
+                                    <label for="tag-high-fat">
+                                        <i class="fas fa-tint"></i> High Fat
+                                    </label>
+                                    <i class="fas fa-chevron-down expand-icon"></i>
+                                </div>
+                                <div class="tag-threshold" id="threshold-high-fat">
+                                    <label class="small text-muted">Minimum fat (g):</label>
+                                    <input type="number" class="form-control form-control-sm" 
+                                        id="value-high-fat" min="15" max="100" value="30" step="5">
+                                </div>
+                            </div>
+
+                            <!-- Balanced -->
+                            <div class="tag-item-wrapper">
+                                <div class="tag-item">
+                                    <input type="checkbox" id="tag-balanced" value="balanced">
+                                    <label for="tag-balanced">
+                                        <i class="fas fa-balance-scale"></i> Balanced
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Low Calorie -->
+                            <div class="tag-item-wrapper">
+                                <div class="tag-item" onclick="toggleTagExpansion('low-calorie')">
+                                    <input type="checkbox" id="tag-low-calorie" value="low-calorie">
+                                    <label for="tag-low-calorie">
+                                        <i class="fas fa-fire"></i> Low Calorie
+                                    </label>
+                                    <i class="fas fa-chevron-down expand-icon"></i>
+                                </div>
+                                <div class="tag-threshold" id="threshold-low-calorie">
+                                    <label class="small text-muted">Maximum calories:</label>
+                                    <input type="number" class="form-control form-control-sm" 
+                                        id="value-low-calorie" min="100" max="500" value="300" step="50">
+                                </div>
+                            </div>
+
+                            <!-- High Calorie -->
+                            <div class="tag-item-wrapper">
+                                <div class="tag-item" onclick="toggleTagExpansion('high-calorie')">
+                                    <input type="checkbox" id="tag-high-calorie" value="high-calorie">
+                                    <label for="tag-high-calorie">
+                                        <i class="fas fa-fire"></i> High Calorie
+                                    </label>
+                                    <i class="fas fa-chevron-down expand-icon"></i>
+                                </div>
+                                <div class="tag-threshold" id="threshold-high-calorie">
+                                    <label class="small text-muted">Minimum calories:</label>
+                                    <input type="number" class="form-control form-control-sm" 
+                                        id="value-high-calorie" min="400" max="1500" value="600" step="50">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-success" onclick="savePreferences()">
+                            <i class="fas fa-save me-2"></i>Save Preferences
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     <div id="modalWindow"></div>
     <script>
         window.recipeData = {

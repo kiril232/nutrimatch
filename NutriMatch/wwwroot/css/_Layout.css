@@ -7,7 +7,6 @@
     --light-gray: #ECF0F1;
 }
 
-
 body {
     min-height: 100vh;
     display: flex;
@@ -17,19 +16,16 @@ body {
 
 .container:has(main) {
     flex: 1;
-}
-
-footer {
-    margin-top: auto;
-}
-.container:has(main) {
-    flex: 1;
     display: flex;
     flex-direction: column;
 }
 
 main {
     flex: 1;
+}
+
+footer {
+    margin-top: auto;
 }
 
 .navbar {
@@ -55,11 +51,78 @@ main {
     background-clip: text;
 }
 
-.nav-link{
+.nav-link {
     color: black !important;
     font-size: 18px !important;
     margin-left: 15px;
+    position: relative;
+    transition: color 0.3s ease-in-out;
 }
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 2px;
+    background: #2ECC71;
+    transition: width 0.3s ease-in-out;
+}
+
+.nav-link:hover {
+    color: #2ECC71 !important;
+}
+
+.nav-link:hover::after {
+    width: 80%;
+}
+
+
+.user-profile-pic {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #ddd;
+    transition: all 0.3s ease-in-out;
+    cursor: pointer;
+}
+
+.user-profile-link {
+    padding: 0 !important;
+    margin-left: -4.5rem !important;
+}
+
+.user-profile-pic:hover {
+    border-color: #2ECC71;
+    transform: scale(1.1);
+    box-shadow: 0 0 15px rgba(46, 204, 113, 0.4);
+}
+
+.user-profile-link.active-glow-border .user-profile-pic {
+    border-color: #2ECC71;
+    box-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+}
+
+
+.navbar-collapse {
+    align-items: center;
+}
+
+.navbar-nav.mx-auto {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+}
+
+.navbar-nav.mx-auto .nav-item {
+    display: flex;
+    align-items: center;
+}
+
 
 footer {
     background: lightslategray !important;
@@ -92,6 +155,12 @@ footer a:hover {
     color: var(--primary-green);
 }
 
+.active-glow {
+    color: #2ECC71 !important;
+    font-weight: bold !important;
+    transition: all 0.3s ease-in-out;
+}
+
 @media (max-width: 768px) {
     .signup-title {
         font-size: 2.5rem;
@@ -110,10 +179,13 @@ footer a:hover {
         width: 60px;
         height: 60px;
     }
-}
-
-.active-glow{
-    color: #2ECC71 !important;
-    font-weight: bold !important;
-    transition: all 0.3s ease-in-out;
+    
+    .user-profile-pic {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .navbar-nav.mx-auto {
+        margin-left: 0; 
+    }
 }

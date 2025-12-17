@@ -1,0 +1,111 @@
+@model IEnumerable<NutriMatch.Models.Notification>
+
+<div class="notification-header">
+    <h4>Notifications</h4>
+    <div class="notification-actions">
+    @if (Model.Any(n => !n.IsRead))
+        {
+            <button id="mark-all-read" class="btn-link">Mark all as read</button>
+        }
+        @if (Model.Any())
+        {
+            <button id="delete-all-notifications" class="btn-link text-danger" title="Delete all notifications" onclick="deleteAllNotifications()">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        }
+        
+        <a asp-area="Identity" asp-page="/Account/MyAccount" asp-route-activeTab="Notifications" class="btn-link" title="Notification settings">
+            <i class="fas fa-cog"></i>
+        </a>
+    </div>
+</div>
+<div class="notification-list" id="notification-list">
+    @if (Model.Any())
+    {
+        foreach (var notification in Model)
+        {
+            var unreadClass = notification.IsRead ? "" : "unread";
+            var timeAgo = GetTimeAgo(notification.CreatedAt);
+            
+            <div class="notification-item @unreadClass" data-id="@notification.Id" data-recipe-id="@notification.RecipeId">
+                @if (notification.Type == "RecipeRated")
+                {
+                    <div class="notification-icon-wrapper">
+                        <i class="fas fa-star notification-type-icon" style="color: #ffc107;"></i>
+                    </div>
+                }
+                else if (notification.Type == "RecipeAccepted")
+                {
+                    <div class="notification-icon-wrapper">
+                        <i class="fas fa-check-circle notification-type-icon" style="color: #4caf50;"></i>
+                    </div>
+                }
+                else if (notification.Type == "RecipeDeclined")
+                {
+                    <div class="notification-icon-wrapper">
+                        <i class="fas fa-times-circle notification-type-icon" style="color: #f44336;"></i>
+                    </div>
+                }
+                else if (notification.Type == "RestaurantNewMeal")
+                {
+                    <div class="notification-icon-wrapper">
+                        <i class="fas fa-utensils notification-type-icon" style="color: #ff6b6b;"></i>
+                    </div>
+                }
+                else if (notification.Type == "MealMatchesTags" || notification.Type == "RecipeMatchesTags")
+                {
+                    <div class="notification-icon-wrapper">
+                        <i class="fas fa-tags notification-type-icon" style="color: #4ecdc4;"></i>
+                    </div>
+                }
+                else if (notification.Type == "NewRestaurant")
+                {
+                    <div class="notification-icon-wrapper">
+                        <i class="fas fa-store notification-type-icon" style="color: #007bff;"></i>
+                    </div>
+                }else if (notification.Type == "MealPlanUpdated")
+                    {
+                        <div class="notification-icon-wrapper">
+                            <i class="fas fa-calendar-check notification-type-icon" style="color: #9c27b0;"></i>
+                        </div>
+                    }
+                
+                <div class="notification-content">
+                    <div class="notification-message">@notification.Message</div>
+                    <div class="notification-time">@timeAgo</div>
+                </div>
+
+                <button class="notification-delete-btn" data-notification-id="@notification.Id" title="Delete notification">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="notification-item no-notifications">
+            <i class="fas fa-bell-slash"></i>
+            <p>No notifications yet</p>
+        </div>
+    }
+</div>
+
+@functions {
+    private string GetTimeAgo(DateTime dateTime)
+    {
+        var timeSpan = DateTime.Now.ToUniversalTime() - dateTime.ToUniversalTime();
+        
+        if (timeSpan.TotalSeconds < 60)
+            return "Just now";
+        else if (timeSpan.TotalMinutes < 60)
+            return $"{(int)timeSpan.TotalMinutes} minute{((int)timeSpan.TotalMinutes != 1 ? "s" : "")} ago";
+        else if (timeSpan.TotalHours < 24)
+            return $"{(int)timeSpan.TotalHours} hour{((int)timeSpan.TotalHours != 1 ? "s" : "")} ago";
+        else if (timeSpan.TotalDays < 7)
+            return $"{(int)timeSpan.TotalDays} day{((int)timeSpan.TotalDays != 1 ? "s" : "")} ago";
+        else
+            return dateTime.ToString("MMM dd, yyyy");
+    }
+}
+
+

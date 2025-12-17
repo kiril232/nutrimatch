@@ -31,10 +31,11 @@
                             save your favorite dishes for quick access and
                             filter recipes by macronutrient profiles that align with your dietary needs
                         </p>
-                        <button class="btn btn-primary-custom">
+                       <a href="/Identity/Account/Register"> <button class="btn btn-primary-custom">
                             Sign up
                         </button>
-                        <p class="mt-3 text-muted">Already have an account? <a href="#"
+                        </a>
+                        <p class="mt-3 text-muted">Already have an account? <a href="/Identity/Account/Login"
                                 style="color: var(--primary-green); text-decoration: none;">Log in</a></p>
                     </div>
                     <div class="col-lg-4 text-center">
@@ -160,6 +161,7 @@
             </div>
         </section>
     }
+
     <section class="share-recipe-section">
         <div class="container">
             <div class="row align-items-center">
@@ -189,7 +191,7 @@
                     <h2 class="share-title">Share Your Recipes</h2>
                     <p class="share-description">
                         Have a recipe that fits your nutrition goals? Share it with the community and help others
-                        discover meals that balance flavor and function. Whether it’s high-protein, low-carb, or
+                        discover meals that balance flavor and function. Whether it's high-protein, low-carb, or
                         macro-balanced — your creations make a difference.
                     </p>
                     <a href="/Recipes/Create" class="btn btn-create-recipe">
@@ -199,6 +201,7 @@
             </div>
         </div>
     </section>
+
     <section class="trending-section">
         <div class="container">
             <h2 class="section-title">Trending Foods</h2>
@@ -275,6 +278,7 @@
             </div>
         </div>
     </section>
+
     <section class="restaurants-section">
         <div class="container">
             <h2 class="section-title">Popular Restaurants</h2>
@@ -283,11 +287,12 @@
         <div class="container">
             <div class="restaurants-container" onclick="window.location.href='@Url.Action("Index", "Restaurants")'"
                 style="cursor: pointer;">
-                @foreach (var restaurant in Model.Restaurants)
+                @for (int i = 0; i < Model.Restaurants.Count; i++)
                 {
-                    <div class="restaurant-card">
+                    var restaurant = Model.Restaurants[i];
+                    <div class="restaurant-card" style="animation-delay: @(i * -4)s; top: 20px;">
                         <div class="restaurant-logo"
-                            style="background: display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; font-weight: bold;">
+                            style="display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; font-weight: bold;">
                             <img src="@restaurant.ImageUrl" style="width: 70px;">
                         </div>
                         <div class="restaurant-name">@restaurant.Name</div>
@@ -298,3 +303,4 @@
         </div>
     </section>
 </body>
+</html>
