@@ -7,12 +7,14 @@ namespace NutriMatch.Services
     public class MealPlanService : IMealPlanService
     {
         private readonly AppDbContext _context;
+        private readonly INotificationService _notificationService;
         private readonly Random _random;
         private readonly Dictionary<string, float> _mealTypeDistribution;
 
-        public MealPlanService(AppDbContext context)
+        public MealPlanService(AppDbContext context, INotificationService notificationService)
         {
             _context = context;
+            _notificationService = notificationService;
             _random = new Random();
 
             _mealTypeDistribution = new Dictionary<string, float>
@@ -540,27 +542,7 @@ namespace NutriMatch.Services
 
                 await _context.SaveChangesAsync();
 
-                foreach (var userId in affectedUserIds)
-                {
-                    var UserNotification = await _context.Users.FindAsync(userId);
-                    if (UserNotification.NotifyMealPlanUpdated)
-                    {
-
-                        var notification = new Notification
-                        {
-                            UserId = userId,
-                            Type = "MealPlanUpdated",
-                            Message = $"A recipe in your meal plan was removed and has been automatically replaced with a similar recipe.",
-                            CreatedAt = DateTime.Now.ToUniversalTime(),
-
-                            IsRead = false
-                        };
-
-                        _context.Notifications.Add(notification);
-                    }
-                }
-
-                await _context.SaveChangesAsync();
+                await _notificationService.CreateMealPlanUpdateNotificationsAsync(affectedUserIds, "recipe");
             }
             catch (Exception ex)
             {
@@ -611,21 +593,7 @@ namespace NutriMatch.Services
 
                 await _context.SaveChangesAsync();
 
-                foreach (var userId in affectedUserIds)
-                {
-                    var notification = new Notification
-                    {
-                        UserId = userId,
-                        Type = "MealPlanUpdated",
-                        Message = $"A restaurant meal in your meal plan was removed and has been automatically replaced with a similar restaurant meal.",
-                        CreatedAt = DateTime.Now.ToUniversalTime(),
-                        IsRead = false
-                    };
-
-                    _context.Notifications.Add(notification);
-                }
-
-                await _context.SaveChangesAsync();
+                await _notificationService.CreateMealPlanUpdateNotificationsAsync(affectedUserIds, "restaurant meal");
             }
             catch (Exception ex)
             {

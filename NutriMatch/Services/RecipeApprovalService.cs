@@ -1,4 +1,3 @@
-
 using NutriMatch.Data;
 using NutriMatch.Models;
 using Microsoft.EntityFrameworkCore;
@@ -54,31 +53,15 @@ namespace NutriMatch.Services
                 recipe.HasPendingIngredients = false;
             }
 
-            var userNotification = await _context.Users.FindAsync(recipe.UserId);
-
-            if (userNotification?.NotifyRecipeAccepted == true)
-            {
-                var notification = new Notification
-                {
-                    UserId = recipe.UserId,
-                    Type = "RecipeAccepted",
-                    Message = $"Great news! Your recipe '{recipe.Title}' has been approved and is now live!",
-                    RecipeId = recipeId,
-                    CreatedAt = DateTime.UtcNow,
-                    IsRead = false
-                };
-
-                _context.Notifications.Add(notification);
-
-                await _notificationService.SendEmailAsync(
-                    userNotification.Email,
-                    "Your recipe has been approved!",
-                    $"<p>Hi {userNotification.UserName},</p><p>{notification.Message}</p>"
-                );
-            }
-
             await _context.SaveChangesAsync();
-            await CreateRecipeNotificationsAsync(recipe);
+            await _notificationService.CreateRecipeNotificationsAsync(recipe);
+
+            await _notificationService.CreateRecipeStatusNotificationAsync(
+                recipe.UserId,
+                recipe.Title,
+                recipeId,
+                isAccepted: true
+            );
 
             return (true, "Recipe approved successfully.");
         }
@@ -99,34 +82,15 @@ namespace NutriMatch.Services
             recipe.DeclineReason = reason ?? string.Empty;
             recipe.AdminComment = notes ?? string.Empty;
 
-            string notificationMessage = string.IsNullOrEmpty(reason) || reason == "No reason provided."
-                ? $"Your recipe '{recipe.Title}' was declined."
-                : $"Your recipe '{recipe.Title}' was declined. Reason: {reason}";
-
-            var userNotification = await _context.Users.FindAsync(recipe.UserId);
-
-            if (userNotification?.NotifyRecipeDeclined == true)
-            {
-                var notification = new Notification
-                {
-                    UserId = recipe.UserId,
-                    Type = "RecipeDeclined",
-                    Message = notificationMessage,
-                    RecipeId = recipeId,
-                    CreatedAt = DateTime.UtcNow,
-                    IsRead = false
-                };
-
-                _context.Notifications.Add(notification);
-
-                await _notificationService.SendEmailAsync(
-                    userNotification.Email,
-                    "Your recipe was declined",
-                    $"<p>Hi {userNotification.UserName},</p><p>{notification.Message}</p>"
-                );
-            }
-
             await _context.SaveChangesAsync();
+
+            await _notificationService.CreateRecipeStatusNotificationAsync(
+                recipe.UserId,
+                recipe.Title,
+                recipeId,
+                isAccepted: false,
+                declineReason: reason
+            );
 
             return (true, "Recipe declined successfully.");
         }
@@ -168,27 +132,6 @@ namespace NutriMatch.Services
                     recipe.HasPendingIngredients = false;
                 }
 
-                var userNotification = await _context.Users.FindAsync(recipe.UserId);
-                if (userNotification?.NotifyRecipeAccepted == true)
-                {
-                    var notification = new Notification
-                    {
-                        UserId = recipe.UserId,
-                        Type = "RecipeAccepted",
-                        Message = $"Great news! Your recipe '{recipe.Title}' has been approved and is now live!",
-                        RecipeId = recipe.Id,
-                        CreatedAt = DateTime.UtcNow,
-                        IsRead = false
-                    };
-
-                    _context.Notifications.Add(notification);
-
-                    await _notificationService.SendEmailAsync(
-                        userNotification.Email,
-                        "Your recipe has been approved!",
-                        $"<p>Hi {userNotification.UserName},</p><p>{notification.Message}</p>"
-                    );
-                }
                 approvedCount++;
             }
 
@@ -196,7 +139,14 @@ namespace NutriMatch.Services
 
             foreach (var recipe in recipes)
             {
-                await CreateRecipeNotificationsAsync(recipe);
+                await _notificationService.CreateRecipeNotificationsAsync(recipe);
+
+                await _notificationService.CreateRecipeStatusNotificationAsync(
+                    recipe.UserId,
+                    recipe.Title,
+                    recipe.Id,
+                    isAccepted: true
+                );
             }
 
             return (true, $"{approvedCount} recipe(s) approved successfully.", approvedCount);
@@ -209,95 +159,6 @@ namespace NutriMatch.Services
                 .Include(r => r.RecipeIngredients)
                 .ThenInclude(ri => ri.Ingredient)
                 .FirstOrDefaultAsync(m => m.Id == recipeId);
-        }
-
-        private async Task CreateRecipeNotificationsAsync(Recipe recipe)
-        {
-            var allPrefs = await _context.UserMealPreferences
-                .Include(p => p.User)
-                .ToListAsync();
-
-            var userPreferences = allPrefs
-                .GroupBy(p => p.UserId)
-                .Select(g => new
-                {
-                    UserId = g.Key,
-                    Preferences = g.ToList(),
-                    User = g.First().User
-                })
-                .Where(u => u.UserId != recipe.UserId && u.User.NotifyRecipeMatchesTags)
-                .ToList();
-
-            foreach (var userPref in userPreferences)
-            {
-                var matchingTags = GetMatchingTags(userPref.Preferences, recipe.Protein, recipe.Carbs, recipe.Fat, recipe.Calories);
-
-                if (matchingTags.Any())
-                {
-                    var tagsText = string.Join(", ", matchingTags);
-
-                    var notification = new Notification
-                    {
-                        UserId = userPref.UserId,
-                        Type = "RecipeMatchesTags",
-                        Message = $"New recipe matches your preferences ({tagsText}): {recipe.Title}",
-                        RecipeId = recipe.Id,
-                        CreatedAt = DateTime.UtcNow,
-                        IsRead = false
-                    };
-
-                    _context.Notifications.Add(notification);
-
-                    await _notificationService.SendEmailAsync(
-                        userPref.User.Email,
-                        "New recipe matches your preferences",
-                        $"<p>Hi {userPref.User.UserName},</p><p>{notification.Message}</p>"
-                    );
-                }
-            }
-
-            await _context.SaveChangesAsync();
-        }
-
-        private List<string> GetMatchingTags(List<UserMealPreference> preferences, float protein, float carbs, float fat, float calories)
-        {
-            var matchingTags = new List<string>();
-
-            foreach (var pref in preferences)
-            {
-                bool matches = pref.Tag switch
-                {
-                    "high-protein" => pref.ThresholdValue.HasValue ? protein >= pref.ThresholdValue.Value : protein >= 30,
-                    "low-carb" => pref.ThresholdValue.HasValue ? carbs <= pref.ThresholdValue.Value : carbs <= 20,
-                    "high-carb" => pref.ThresholdValue.HasValue ? carbs >= pref.ThresholdValue.Value : carbs >= 50,
-                    "low-fat" => pref.ThresholdValue.HasValue ? fat <= pref.ThresholdValue.Value : fat <= 15,
-                    "high-fat" => pref.ThresholdValue.HasValue ? fat >= pref.ThresholdValue.Value : fat >= 30,
-                    "low-calorie" => pref.ThresholdValue.HasValue ? calories <= pref.ThresholdValue.Value : calories <= 300,
-                    "high-calorie" => pref.ThresholdValue.HasValue ? calories >= pref.ThresholdValue.Value : calories >= 600,
-                    "balanced" => IsBalanced(protein, carbs, fat, calories),
-                    _ => false
-                };
-
-                if (matches)
-                {
-                    matchingTags.Add(pref.Tag);
-                }
-            }
-
-            return matchingTags;
-        }
-
-        private bool IsBalanced(float protein, float carbs, float fat, float calories)
-        {
-            if (calories <= 0) return false;
-
-            float proteinRatio = (protein * 4) / calories * 100;
-            float carbRatio = (carbs * 4) / calories * 100;
-            float fatRatio = (fat * 9) / calories * 100;
-
-            return proteinRatio >= 20 && proteinRatio <= 35 &&
-                carbRatio >= 30 && carbRatio <= 50 &&
-                fatRatio >= 20 && fatRatio <= 35;
         }
     }
 }

@@ -29,7 +29,7 @@ namespace NutriMatch.Services
             _env = env;
             _mealPlanService = mealPlanService;
             _notificationService = notificationService;
-          
+
             _mealClassificationService = mealClassificationService;
         }
 
@@ -127,7 +127,7 @@ namespace NutriMatch.Services
             _context.Restaurants.Add(restaurant);
             await _context.SaveChangesAsync();
 
-            await CreateRestaurantNotificationsAsync(restaurant);
+            await _notificationService.CreateRestaurantNotificationsAsync(restaurant);
 
             return (true, "Restaurant added successfully", restaurant.Id);
         }
@@ -241,7 +241,7 @@ namespace NutriMatch.Services
             _context.RestaurantMeals.Add(meal);
             await _context.SaveChangesAsync();
 
-            await CreateMealNotificationsAsync(meal, restaurant);
+            await _notificationService.CreateMealNotificationsAsync(meal, restaurant);
 
             return (true, "Meal added successfully");
         }
@@ -284,112 +284,6 @@ namespace NutriMatch.Services
             return (true, "Meal deleted successfully");
         }
 
-        private async Task CreateRestaurantNotificationsAsync(Restaurant restaurant)
-        {
-            var users = await _context.Users
-                .Where(u => u.NotifyNewRestaurant)
-                .ToListAsync();
-
-            foreach (var user in users)
-            {
-                var notification = new Notification
-                {
-                    UserId = user.Id,
-                    Type = "NewRestaurant",
-                    Message = "New restaurant added: " + restaurant.Name,
-                    RecipeId = restaurant.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    IsRead = false
-                };
-
-                _context.Notifications.Add(notification);
-
-                await _notificationService.SendEmailAsync(
-                    user.Email,
-                    "New restaurant added!",
-                    $"<p>Hi {user.UserName},</p><p>New restaurant added: <b>{restaurant.Name}</b>.</p>"
-                );
-            }
-
-            await _context.SaveChangesAsync();
-        }
-
-        private async Task CreateMealNotificationsAsync(RestaurantMeal meal, Restaurant restaurant)
-        {
-            var followers = await _context.RestaurantFollowings
-                .Include(f => f.User)
-                .Where(f => f.RestaurantId == meal.RestaurantId && f.User.NotifyRestaurantNewMeal)
-                .Select(f => f.UserId)
-                .ToListAsync();
-
-            foreach (var userId in followers)
-            {
-                var notification = new Notification
-                {
-                    UserId = userId,
-                    Type = "RestaurantNewMeal",
-                    Message = $"{restaurant.Name} added a new meal: {meal.ItemName}",
-                    RecipeId = restaurant.Id,
-                    CreatedAt = DateTime.UtcNow,
-                    IsRead = false
-                };
-                _context.Notifications.Add(notification);
-
-                var follower = await _context.Users.FindAsync(userId);
-                if (follower != null)
-                {
-                    await _notificationService.SendEmailAsync(
-                        follower.Email,
-                        "New meal added",
-                        $"<p>Hi {follower.UserName},</p><p>{restaurant.Name} added a new meal: <b>{meal.ItemName}</b>.</p>"
-                    );
-                }
-            }
-
-            var allPrefs = await _context.UserMealPreferences
-                .Include(p => p.User)
-                .ToListAsync();
-
-            var userPreferences = allPrefs
-                .GroupBy(p => p.UserId)
-                .Select(g => new
-                {
-                    UserId = g.Key,
-                    Preferences = g.ToList(),
-                    User = g.First().User
-                })
-                .Where(u => !followers.Contains(u.UserId) && u.User.NotifyMealMatchesTags)
-                .ToList();
-
-            foreach (var userPref in userPreferences)
-            {
-                var matchingTags = GetMatchingTags(userPref.Preferences, meal.Protein, meal.Carbs, meal.Fat, meal.Calories);
-
-                if (matchingTags.Any())
-                {
-                    var tagsText = string.Join(", ", matchingTags);
-
-                    var notification = new Notification
-                    {
-                        UserId = userPref.UserId,
-                        Type = "MealMatchesTags",
-                        Message = $"New meal matches your preferences ({tagsText}): {meal.ItemName} at {restaurant.Name}",
-                        RecipeId = restaurant.Id,
-                        CreatedAt = DateTime.UtcNow,
-                        IsRead = false
-                    };
-                    _context.Notifications.Add(notification);
-
-                    await _notificationService.SendEmailAsync(
-                        userPref.User.Email,
-                        "New meal matches your preferences",
-                        $"<p>Hi {userPref.User.UserName},</p><p>{notification.Message}</p>"
-                    );
-                }
-            }
-
-            await _context.SaveChangesAsync();
-        }
 
         private List<string> GetMatchingTags(List<UserMealPreference> preferences, float protein, float carbs, float fat, float calories)
         {

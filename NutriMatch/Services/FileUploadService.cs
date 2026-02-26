@@ -1,4 +1,4 @@
-    using System;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -23,8 +23,7 @@ namespace NutriMatch.Services
             }
 
             var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
-            
-            // Ensure directory exists
+
             if (!Directory.Exists(uploadsFolder))
             {
                 Directory.CreateDirectory(uploadsFolder);
@@ -49,7 +48,7 @@ namespace NutriMatch.Services
             }
 
             var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", imageUrl.TrimStart('/'));
-            
+
             if (File.Exists(imagePath))
             {
                 try

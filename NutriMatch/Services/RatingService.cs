@@ -55,29 +55,13 @@ namespace NutriMatch.Services
                 _context.RecipeRatings.Add(newRating);
             }
 
-            // Send notification
-            var userNotification = await _context.Users.FindAsync(recipe.UserId);
-            if (userNotification?.NotifyRecipeRated == true)
-            {
-                var notification = new Notification
-                {
-                    UserId = recipe.UserId,
-                    Type = "RecipeRated",
-                    Message = $"Your recipe '{recipe.Title}' received a new rating of {rating} stars.",
-                    RecipeId = recipe.Id,
-                    RelatedUserId = userId,
-                    CreatedAt = DateTime.UtcNow,
-                    IsRead = false
-                };
-
-                _context.Notifications.Add(notification);
-
-                await _notificationService.SendEmailAsync(
-                    userNotification.Email,
-                    "Your recipe was rated!",
-                    $"<p>Hi {userNotification.UserName},</p><p>{notification.Message}</p>"
-                );
-            }
+            await _notificationService.CreateRecipeRatingNotificationAsync(
+                recipe.UserId,
+                userId,
+                recipe.Title,
+                recipe.Id,
+                rating
+            );
 
             await _context.SaveChangesAsync();
 
@@ -122,5 +106,5 @@ namespace NutriMatch.Services
         }
     }
 
-    
+
 }

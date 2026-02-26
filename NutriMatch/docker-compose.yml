@@ -1,0 +1,54 @@
+services:
+
+  db:
+    image: postgres:16
+    container_name: nutrimatch_db
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql  
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nutrimatch_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+
+      ConnectionStrings__DefaultConnection: "Host=db;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Port=5432"
+      ConnectionStrings__ApplicationDbContextConnection: "Host=db;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Port=5432"
+
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID}
+      Authentication__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET}
+
+      Authentication__Facebook__AppId: ${FACEBOOK_APP_ID}
+      Authentication__Facebook__AppSecret: ${FACEBOOK_APP_SECRET}
+
+      EmailSettings__FromEmail: ${EMAIL_FROM}
+      EmailSettings__Password: ${EMAIL_PASSWORD}
+      EmailSettings__SmtpServer: ${EMAIL_SMTP}
+      EmailSettings__Port: ${EMAIL_PORT}
+
+volumes:
+  postgres_data:
